@@ -813,7 +813,7 @@ long AllocateOSMemory (long RequestedSize)  // return value contains address or 
 	      if(CurrentPtr == OSFreeList)  // first block
 	      {
 		mem[CurrentPtr + RequestedSize] = mem[CurrentPtr];  // move next block ptr
-		mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr +1] – RequestedSize;
+		mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr +1] - RequestedSize;
 		OSFreeList = CurrentPtr + RequestedSize;  // address of reduced block
 		Memory[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
 		return(CurrentPtr);	// return memory address
@@ -821,7 +821,7 @@ long AllocateOSMemory (long RequestedSize)  // return value contains address or 
 	      else  // not first black
 	      {
 		Memory[CurrentPtr + RequestedSize] = Memory[CurrentPtr];  // move next block ptr
-		Memory[CurrentPtr + RequestedSize + 1] = Memory[CurrentPtr +1] – RequestedSize;
+		Memory[CurrentPtr + RequestedSize + 1] = Memory[CurrentPtr +1] - RequestedSize;
 		Memory[PreviousPtr] = CurrentPtr + RequestedSize;  // address of reduced block
 		Memory[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
 		return(CurrentPtr);	// return memory address

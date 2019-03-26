@@ -51,6 +51,8 @@
 #define ErrorRuntime            -10
 #define ErrorStackOverflow      -11
 #define ErrorStackUnderflow     -12
+#define ErrorNoFreeMemory	-13
+#define ErrorInvalidMemorySize	-14
 
 /*** GLOBAL VARS ***/
 long mem[SYSTEM_MEMORY_SIZE], gpr[GPR_NUMBER];
@@ -749,3 +751,90 @@ void DumpMemory(
 	printf("System-Clock >> %d\n", clock);
 	printf("Processor Status Register (PSR) >> %d\n", psr);
 }
+
+`
+/*******************************************************************************
+ * Function: AllocateOSMemory
+ *
+ * Description: Displays the current state of all GeneralPurposeRegisters(GPR),
+ * the StackPointer (SP), ProgramCounter(PC), ProcessorStatusRegister(PSR),
+ * system Clock, and a dump of the system memory up-to a given memory address.
+ *
+ * Input Parameters
+ *      String			String header displayed above Status Table
+ *      StartAddress			Memory location from which to begin dump
+ *      Size				Offset from StartAddress
+ *
+ * Output Parameters
+ *      None
+ *
+ * Function Return Value
+ *      None
+ ******************************************************************************/
+
+long AllocateOSMemory (long RequestedSize)  // return value contains address or error
+{
+	// Allocate memory from OS free space, which is organized as link
+     if(OSFreeList == EndOfLisrt)
+     {
+	//TODO display no free OS memory error;
+	return(ErrorNoFreeMemory);   // ErrorNoFreeMemory is constant set to < 0
+      }
+     if(RequestedSize < 0)
+     {
+	//TODO display invalid size error;
+	return(ErrorInvalidMemorySize);  // ErrorInvalidMemorySize is constant < 0
+     }
+      if(RequestedSize == 1)
+	RequestedSize = 2;  // Minimum allocated memory is 2 locations
+
+      CurrentPtr = OSFreeList;
+      PreviousPtr = EOL;
+      while (CurrentPtr != EndOfList)
+      {
+	// Check each block in the link list until block with requested memory size is found
+	if(Memory[CurrentPtr + 1] == RequestedSize)
+	{  // Found block with requested size.  Adjust pointers
+	      if(CurrentPtr == OSFreeList)  // first block
+	      {
+		OSFreeList = Memory[CurrentPtr];  // first entry is pointer to next block
+		Memory[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
+		Return(CurrentPtr);	// return memory address
+	      }
+	      else  // not first black
+	      {
+		Memory[PreviousPtr] = Memory[CurrentPtr];  // point to next block
+		Memory[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
+		return(CurrentPtr);    // return memory address
+	      }
+               }
+     	else if(Memory[CurrentPtr + 1] > RequestedSize)
+	{  // Found block with size greater than requested size
+	      if(CurrentPtr == OSFreeList)  // first block
+	      {
+		mem[CurrentPtr + RequestedSize] = mem[CurrentPtr];  // move next block ptr
+		mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr +1] – RequestedSize;
+		OSFreeList = CurrentPtr + RequestedSize;  // address of reduced block
+		Memory[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
+		return(CurrentPtr);	// return memory address
+	      }
+	      else  // not first black
+	      {
+		Memory[CurrentPtr + RequestedSize] = Memory[CurrentPtr];  // move next block ptr
+		Memory[CurrentPtr + RequestedSize + 1] = Memory[CurrentPtr +1] – RequestedSize;
+		Memory[PreviousPtr] = CurrentPtr + RequestedSize;  // address of reduced block
+		Memory[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
+		return(CurrentPtr);	// return memory address
+	      }
+	}
+	else  // small block
+	{  // look at next block
+		Previousptr = CurrentPtr;
+		CurrentPtr = Memory[CurrentPtr];
+	}
+      } // end of while CurrentPtr loop
+
+      //TODO: display no free OS memory error;
+      return(ErrorNoFreeMemory);   // ErrorNoFreeMemory is constant set to < 0
+}  // end of AllocateOSMemory() function
+

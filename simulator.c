@@ -32,11 +32,13 @@
 /*** VIRTUAL SYSTEM PARAMETERS ***/
 #define SYSTEM_MEMORY_SIZE      10000
 #define GPR_NUMBER              8
+/*** CONSTANTS ***/
+#define OS_MODE			-0
+#define  DEFAULT_PRIORITY	128
 // Memory-Space Boundaries (non-inclusive)
 #define MAX_USER_MEMORY         3999
 #define MAX_HEAP_MEMORY         6999
-#define MAX_SYSM_MEMORY         9999
-
+#define MAX_OS_MEMORY         	9999
 
 /*** ERROR CODES ***/
 #define OK                      -1
@@ -64,9 +66,12 @@ void InitializeSystem();
 int main();
 int AbsoluteLoader(char* filename);
 long CPU();
-long SystemCall(long *OpValue, long SystemCallID);
+long SystemCall(long SystemCallID);
 long FetchOperand(long OpMode, long OpReg, long *OpAddress, long *OpValue);
 void DumpMemory(char* String, long StartAddress, long size);
+long CreateProcess (char* filename, long priority);
+long AllocateOSMemory (long RequestedSize);
+
 
 
 /*** FUNCTIONS ***/
@@ -544,13 +549,19 @@ long CPU()
  ******************************************************************************/
 
 //TODO: Implement Function
-long SystemCall(long *OpValue, long SystemCallID)
+long SystemCall(long SystemCallID)
 {
-	return *OpValue;
+	psr = OS_MODE;		// Set system mode to OS mode
+	printf("MACHINE STATUS SET >>> OS");
+
+	//TODO: Unsure what file name should be and where to define priority
+	//maybe pc+1 value?
+	char *filename = "test";
+	long priority = DEFAULT_PRIORITY;
 
 	switch (SystemCallID) {
 	case 1:                 //process_create
-
+		CreateProcess(filename, priority);
 		break;
 	case 2:                 //process_delete
 
@@ -602,7 +613,7 @@ long SystemCall(long *OpValue, long SystemCallID)
  *
  * Output Parameters
  *      OpAddress			Address of Operand
- *      OpValue			Value of Operand when GPR and mode are valid
+ *      OpValue				Value of Operand when GPR and mode are valid
  *
  * Function Return Value
  *      OK				-Successful Fetch
@@ -752,7 +763,62 @@ void DumpMemory(
 	printf("Processor Status Register (PSR) >> %d\n", psr);
 }
 
-`
+/*******************************************************************************
+ * Function: CreateProcess
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ *      String (pointer)		Name of the file associated with the process
+ * 	Long				An interger value defining priority
+ *
+ * Output Parameters
+ *      None
+ *
+ * Function Return Value
+ *      None
+ ******************************************************************************/
+long CreateProcess (char* filename, long priority)
+{
+	// Allocate space for Process Control Block
+	long *PCBptr = &mem[MAX_HEAP_MEMORY + 1]; //TODO: Wrong behavior,
+
+	// Initialize PCB: Set nextPCBlink to end of list, default priority, Ready state, and PID
+	//InitializePCB(PCBptr); //TODO: Enable once function implemented
+
+	// Load the program
+	Set value =load the program calling by Absolute Loader passing filename as argument;
+	Check for error and return error code, if loading program failed
+
+		// store PC value in the PCB of the process
+		Set PC value in the PCB = value;
+
+	// Allocate stack space from user free list
+	Set ptr = Allocate User Memory of size StackSize;
+	if (ptr < 0)	// check for error
+	{  // User memory allocation failed
+		Free allocated PCB space by calling Free OS Memory passing PCBptr and  PCBsize;
+		return(ptr);  // return error code
+	}
+
+	// Store stack information in the PCB – SP, ptr, and size
+	Set SP in the PCB = ptr + Stack Size;  // empty stack is high address, full is low address
+	Set stack start address in the PCB to ptr;
+	Set stack size in the PCB = Stack Size;
+
+	Set priority in the PCB = priority;	// Set priority
+
+	Dump program area;
+
+	Print PCB passing PCBptr;
+
+	// Insert PCB into Ready Queue according to the scheduling algorithm
+	Insert PCB into Ready Queue passing PCBptr;
+
+	return(OK);
+}
+
+
 /*******************************************************************************
  * Function: AllocateOSMemory
  *
@@ -775,66 +841,65 @@ void DumpMemory(
 long AllocateOSMemory (long RequestedSize)  // return value contains address or error
 {
 	// Allocate memory from OS free space, which is organized as link
-     if(OSFreeList == EndOfLisrt)
-     {
-	//TODO display no free OS memory error;
+	if(OSFreeList == EndOfList)
+	{
+		//TODO display no free OS memory error;
+		return(ErrorNoFreeMemory);   // ErrorNoFreeMemory is constant set to < 0
+	}
+	if(RequestedSize < 0)
+	{
+		//TODO display invalid size error;
+		return(ErrorInvalidMemorySize);  // ErrorInvalidMemorySize is constant < 0
+	}
+	if(RequestedSize == 1)
+		RequestedSize = 2;  // Minimum allocated memory is 2 locations
+
+	CurrentPtr = OSFreeList;
+	PreviousPtr = EndOfList;
+	while (CurrentPtr != EndOfList)
+	{
+		// Check each block in the link list until block with requested memory size is found
+		if(mem[CurrentPtr + 1] == RequestedSize)
+		{  // Found block with requested size.  Adjust pointers
+			if(CurrentPtr == OSFreeList)  // first block
+			{
+				OSFreeList = mem[CurrentPtr];  // first entry is pointer to next block
+				mem[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
+				return(CurrentPtr);	// return memory address
+			}
+			else  // not first black
+			{
+				mem[PreviousPtr] = mem[CurrentPtr];  // point to next block
+				mem[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
+				return(CurrentPtr);    // return memory address
+			}
+		}
+		else if(mem[CurrentPtr + 1] > RequestedSize)
+		{  // Found block with size greater than requested size
+			if(CurrentPtr == OSFreeList)  // first block
+			{
+				mem[CurrentPtr + RequestedSize] = mem[CurrentPtr];  // move next block ptr
+				mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr +1] - RequestedSize;
+				OSFreeList = CurrentPtr + RequestedSize;  // address of reduced block
+				mem[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
+				return(CurrentPtr);	// return memory address
+			}
+			else  // not first black
+			{
+				mem[CurrentPtr + RequestedSize] = mem[CurrentPtr];  // move next block ptr
+				mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr +1] - RequestedSize;
+				mem[PreviousPtr] = CurrentPtr + RequestedSize;  // address of reduced block
+				mem[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
+				return(CurrentPtr);	// return memory address
+			}
+		}
+		else  // small block
+		{  // look at next block
+			Previousptr = CurrentPtr;
+			CurrentPtr = Memory[CurrentPtr];
+		}
+	} // end of while CurrentPtr loop
+
+	//TODO: display no free OS memory error;
 	return(ErrorNoFreeMemory);   // ErrorNoFreeMemory is constant set to < 0
-      }
-     if(RequestedSize < 0)
-     {
-	//TODO display invalid size error;
-	return(ErrorInvalidMemorySize);  // ErrorInvalidMemorySize is constant < 0
-     }
-      if(RequestedSize == 1)
-	RequestedSize = 2;  // Minimum allocated memory is 2 locations
-
-      CurrentPtr = OSFreeList;
-      PreviousPtr = EOL;
-      while (CurrentPtr != EndOfList)
-      {
-	// Check each block in the link list until block with requested memory size is found
-	if(Memory[CurrentPtr + 1] == RequestedSize)
-	{  // Found block with requested size.  Adjust pointers
-	      if(CurrentPtr == OSFreeList)  // first block
-	      {
-		OSFreeList = Memory[CurrentPtr];  // first entry is pointer to next block
-		Memory[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
-		Return(CurrentPtr);	// return memory address
-	      }
-	      else  // not first black
-	      {
-		Memory[PreviousPtr] = Memory[CurrentPtr];  // point to next block
-		Memory[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
-		return(CurrentPtr);    // return memory address
-	      }
-               }
-     	else if(Memory[CurrentPtr + 1] > RequestedSize)
-	{  // Found block with size greater than requested size
-	      if(CurrentPtr == OSFreeList)  // first block
-	      {
-		mem[CurrentPtr + RequestedSize] = mem[CurrentPtr];  // move next block ptr
-		mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr +1] - RequestedSize;
-		OSFreeList = CurrentPtr + RequestedSize;  // address of reduced block
-		Memory[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
-		return(CurrentPtr);	// return memory address
-	      }
-	      else  // not first black
-	      {
-		Memory[CurrentPtr + RequestedSize] = Memory[CurrentPtr];  // move next block ptr
-		Memory[CurrentPtr + RequestedSize + 1] = Memory[CurrentPtr +1] - RequestedSize;
-		Memory[PreviousPtr] = CurrentPtr + RequestedSize;  // address of reduced block
-		Memory[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
-		return(CurrentPtr);	// return memory address
-	      }
-	}
-	else  // small block
-	{  // look at next block
-		Previousptr = CurrentPtr;
-		CurrentPtr = Memory[CurrentPtr];
-	}
-      } // end of while CurrentPtr loop
-
-      //TODO: display no free OS memory error;
-      return(ErrorNoFreeMemory);   // ErrorNoFreeMemory is constant set to < 0
-}  // end of AllocateOSMemory() function
-
+}

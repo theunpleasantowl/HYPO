@@ -1,9 +1,8 @@
-
 /*******************************************************************************
- * Author:      Ykaro Rocha
- * SID:		300909877
- * Date:		2/18/2019
- * Class :     	 CSCI.465 Operating Systems Internals
+ * Title:	HYPO Machine - MTOPS
+ * Authors:     //TODO
+ * Date:
+ * Class :     	CSCI.465 Operating Systems Internals
  * Professor:	Suban Krishnamoorthy
  * Program Title: HYPO MACHINE SIMULATION
  * Program Description: Emulates a hypothetical processing machine called `HYPO`
@@ -14,13 +13,13 @@
  * MAR		: Memory Address Register
  * MBR		: Memory Buffer Register
  * RAM		: Random Access Memory
- * IR          	 : Instruction Register
+ * IR          	: Instruction Register
  * SP		: Stack Pointer
  * PC		: Program Counter
  * GPR		: General Purpose Register
  * ALU		: Arithmetic and Logic Unit
  * PSR		: Processor Status Register
- * Clock		: System clock wth time in microseconds
+ * Clock	: System clock wth time in microseconds
  *
  * A detailed description of each function can be found in this document.
  *
@@ -53,12 +52,14 @@
 #define ErrorRuntime            -10
 #define ErrorStackOverflow      -11
 #define ErrorStackUnderflow     -12
-#define ErrorNoFreeMemory	-13
-#define ErrorInvalidMemorySize	-14
+#define ErrorInvalidMemorySize  -13
+#define ErrorNoFreeMemory       -14
 
 /*** GLOBAL VARS ***/
 long mem[SYSTEM_MEMORY_SIZE], gpr[GPR_NUMBER];
 long mar, mbr, clock, ir, psr, pc, sp;
+long OSFreeList, UserFreeList, RQ;
+long EndOfList = -1; //indicates end of OSFreeList or UserFreeList
 
 
 /*** FUNCTION PROTOTYPES ***/
@@ -69,9 +70,14 @@ long CPU();
 long SystemCall(long SystemCallID);
 long FetchOperand(long OpMode, long OpReg, long *OpAddress, long *OpValue);
 void DumpMemory(char* String, long StartAddress, long size);
-long CreateProcess (char* filename, long priority);
-long AllocateOSMemory (long RequestedSize);
+long CreateProcess(char *filename, long priority);
+long AllocateOSMemory(long RequestedSize);
+long FreeOSMemory(long ptr, long size);
+long AllocateUserMemory(long size);
+long FreeUserMemory(long ptr, long size);
 
+long MemAllocSystemCall();
+long MemFreeSystemCall();
 
 
 /*** FUNCTIONS ***/
@@ -570,10 +576,12 @@ long SystemCall(long SystemCallID)
 
 		break;
 	case 4:                 //mem_alloc
-
+	    //Dynamic memory allocation: Allocate user free memory system call
+        MemAllocSystemCall();
 		break;
 	case 5:                 //mem_free
-
+	    // Free dynamically allocated user memory system call
+        MemFreeSystemCall();
 		break;
 	case 6:                 //msg_send
 
@@ -642,7 +650,7 @@ long FetchOperand(
 		}else  {
 			printf("ERROR: Invalid Fetch Operand Address\n");
 			return ErrorInvalidAddress;
-		}https://www.youtube.com/
+		}
 
 		break;
 	case 3:         //Autoincrement mode -> ADDR in GPR, OPVAL in MEM
@@ -818,7 +826,6 @@ long CreateProcess (char* filename, long priority)
 	return(OK);
 }
 
-
 /*******************************************************************************
  * Function: AllocateOSMemory
  *
@@ -854,8 +861,8 @@ long AllocateOSMemory (long RequestedSize)  // return value contains address or 
 	if(RequestedSize == 1)
 		RequestedSize = 2;  // Minimum allocated memory is 2 locations
 
-	CurrentPtr = OSFreeList;
-	PreviousPtr = EndOfList;
+	long CurrentPtr = OSFreeList;
+	long PreviousPtr = EndOfList;
 	while (CurrentPtr != EndOfList)
 	{
 		// Check each block in the link list until block with requested memory size is found
@@ -895,11 +902,272 @@ long AllocateOSMemory (long RequestedSize)  // return value contains address or 
 		}
 		else  // small block
 		{  // look at next block
-			Previousptr = CurrentPtr;
-			CurrentPtr = Memory[CurrentPtr];
+			PreviousPtr = CurrentPtr;
+			CurrentPtr = mem[CurrentPtr];
 		}
 	} // end of while CurrentPtr loop
 
 	//TODO: display no free OS memory error;
 	return(ErrorNoFreeMemory);   // ErrorNoFreeMemory is constant set to < 0
+}
+
+
+/*******************************************************************************
+ * Function: FreeOSMemory
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+long FreeOSMemory(long ptr, long size)
+{
+	if(ptr < 7000 || ptr > MAX_OS_MEMORY)
+	{
+		printf("ERROR: Invalid Adress");
+		return(ErrorInvalidAddress);
+	}
+
+	if(size == 1)
+	{
+		size = 2; //minimum allocated size
+	}
+
+	else if(size < 1 ||(ptr+size) >= MAX_OS_MEMORY)
+	{
+		//invalid size
+		printf("ERROR: Invalid size or Invalid Address");
+		return(ErrorInvalidAddress);
+	}
+
+	mem[ptr] = OSFreeList;
+	mem[ptr + 1] = size;
+	OSFreeList = ptr;
+}
+
+/*******************************************************************************
+ * Function: AllocateUserMemory
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+long AllocateUserMemory(long RequestedSize) //return value contains address or ERROR
+{
+	// Allocate memory from OS free space, which is organized as link
+	if(UserFreeList == EndOfList)
+	{
+		printf("ERROR: No free User memory\n");
+		return(ErrorNoFreeMemory);
+	}
+
+	if(RequestedSize < 0)
+	{
+		printf("ERROR: Invalid Memory Size\n");
+		return(ErrorInvalidMemorySize);
+	}
+
+	if(RequestedSize == 1)
+	{
+		RequestedSize = 2; //minimum allocated memory is 2 locations
+	}
+
+	long CurrentPtr = UserFreeList;
+	long PreviousPtr = EndOfList;
+	while(CurrentPtr != EndOfList)
+	{
+		if(mem[CurrentPtr + 1] == RequestedSize)
+		{//found block with requested Size
+			if(CurrentPtr == UserFreeList) // first block
+			{
+				UserFreeList = mem[CurrentPtr]; //first entry is pointer to next block
+				mem[CurrentPtr] = EndOfList;  //reset next pointer in the allocated blcok
+				return(CurrentPtr); //return memory address
+			}
+			else //not first block
+			{
+				mem[PreviousPtr] = mem[CurrentPtr]; //point to next block
+				mem[CurrentPtr] = EndOfList; //reset next pointer in the allocated block
+				return(CurrentPtr); //return memory address
+			}
+		}
+
+		else if(mem[CurrentPtr+1] > RequestedSize)
+		{
+			//found block with size greater than RequestedSize
+			if(CurrentPtr == UserFreeList) //first block
+			{
+				mem[CurrentPtr + RequestedSize] = mem[CurrentPtr];
+
+				mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr +1] - RequestedSize;
+
+				UserFreeList = CurrentPtr + RequestedSize; //address of reduced block
+				mem[CurrentPtr] = EndOfList; //reset next pointer in the allocated block
+				return(CurrentPtr); //return memory address
+			}
+			else // not first block
+			{
+				mem[CurrentPtr + RequestedSize] = mem[CurrentPtr]; //move the next block pointer
+
+				mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr + 1] - RequestedSize;
+
+				mem[PreviousPtr] = CurrentPtr + RequestedSize; //address of reduced block
+				mem[CurrentPtr] = EndOfList; //Reset next pointer in the allocated block
+				return(CurrentPtr); //return memory address
+			}
+		}
+		else //small block
+		{
+			//look at next block
+			PreviousPtr = CurrentPtr;
+			CurrentPtr = mem[CurrentPtr];
+
+		}
+	} //end of while CurrentPtr loop
+
+	printf("ERROR: No Free User memory\n");
+	return(ErrorNoFreeMemory);
+}
+
+/*******************************************************************************
+ * Function: FreeUserMemory
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+long FreeUserMemory(long ptr, long size)
+{
+	if(ptr < 0 || ptr > MAX_USER_MEMORY)
+	{
+		printf("ERROR: Invalid Adress");
+		return(ErrorInvalidAddress);
+	}
+
+	if(size == 1)
+	{
+		size = 2; //minimum allocated size
+	}
+
+	else if(size < 1 ||(ptr+size) >= MAX_USER_MEMORY)
+	{
+		//invalid size
+		printf("ERROR: Invalid size or Invalid Address");
+		return(ErrorInvalidAddress);
+	}
+
+	mem[ptr] = UserFreeList;
+	mem[ptr + 1] = size; //set the free block size in the given free block
+	UserFreeList = ptr; // user free list points to given free block
+}
+
+/*******************************************************************************
+ * Function: MemAllocSystemCall
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+long MemAllocSystemCall()
+{
+	// Allocate memory from user free list
+	// Return status from the function is either the address of allocated memory or an error code
+
+	long Size = gpr[2];
+
+	//check if size is out of range
+	if(Size < 1 || Size > MAX_USER_MEMORY)
+	{
+		printf("Error: InvalidAddress");
+		return(ErrorInvalidAddress);
+	}
+
+	if(Size == 1)
+		Size = 2;
+
+	gpr[1] = AllocateUserMemory(Size);
+
+	if(gpr[1] < 0)
+	{
+		gpr[0] = gpr[1]; //set GPR0 to have the return status
+	}
+	else
+	{
+		gpr[0] = OK;
+	}
+
+	printf("MemAllocSystemCall - GPR0: %d\tGPR1: %d\tGPR2: %d", gpr[0], gpr[1], gpr[2]);
+
+	return gpr[0];
+}
+
+/*******************************************************************************
+ * Function: MemFreeSystemCall
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+long MemFreeSystemCall()
+{
+	// Return dynamically allocated memory to the user free list
+	// GPR1 has memory address and GPR2 has memory size to be released
+	// Return status in GPR0
+
+	long Size = gpr[2];
+
+	//check if size is out of range
+	if(Size < 1 || Size > MAX_USER_MEMORY)
+	{
+		printf("Error: InvalidAddress");
+		return(ErrorInvalidAddress);
+	}
+
+	if(Size == 1)
+		Size = 2;
+
+	gpr[0] = FreeUserMemory(gpr[1], Size);
+
+	printf("Mem_Free System Call - GPR0: %d\tGPR1: %d\tGPR2: %d", gpr[0], gpr[1], gpr[2]);
+
+	return gpr[0];
 }

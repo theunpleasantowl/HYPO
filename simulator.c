@@ -31,9 +31,20 @@
 /*** VIRTUAL SYSTEM PARAMETERS ***/
 #define SYSTEM_MEMORY_SIZE      10000
 #define GPR_NUMBER              8
-/*** CONSTANTS ***/
-#define OS_MODE			-0
 #define  DEFAULT_PRIORITY	128
+
+/*** VALUE CONSTANTS ***/
+#define SCRIPT_INDICATOR_END	-1
+
+// Simulator Execution Status
+#define SIMULATOR_STATUS_HALTED	0
+//#define SIMULATOR_STATUS_OK	1
+
+// Machine PSR Modes
+#define MACHINE_MODE_USER	0
+#define MACHINE_MODE_OS		1
+
+
 // Memory-Space Boundaries (non-inclusive)
 #define MAX_USER_MEMORY         3999
 #define MAX_HEAP_MEMORY         6999
@@ -135,7 +146,7 @@ int main()
 
 	//Prompt User to load Machine Code Program
 	printf("Enter Machine Code Program Filename >>");
-	scanf("%128s", filename);
+	scanf("%127s", filename);
 
 
 	// Ready System and Load File
@@ -196,7 +207,7 @@ int AbsoluteLoader(char* filename)
 	int addr, word;
 	while (fscanf(fp, "%d %d", &addr, &word) != EOF) {
 		// If Address indicates EOP, Word is PC Value
-		if (addr == -1) {
+		if (addr == SCRIPT_INDICATOR_END) {
 			fclose(fp);
 			if (word < SYSTEM_MEMORY_SIZE && word > 0)
 				return word;                    //Success
@@ -205,6 +216,7 @@ int AbsoluteLoader(char* filename)
 		}else if (0 <= addr <= MAX_USER_MEMORY)
 			mem[addr] = word;
 		else{
+			fclose(fp);
 			printf("ERROR: Address Location in Invalid Range\n");
 			return ErrorInvalidAddress;
 		}
@@ -251,10 +263,11 @@ long CPU()
 	/* Local Variables */
 	long opcode, op1mode, op1gpr, op2mode, op2gpr, op1addr, op1val,
 	     op2addr, op2val, remainder, result, SystemCallID;
+	long status = OK;
 
 
-	//Run CPU until HALT state (Runs while Initialized or OK Status)
-	while (psr >= -1) {
+	// Run CPU until HALT state
+	while (status = OK) {
 
 		// Fetch Cycle
 		if (0 <= pc <= MAX_USER_MEMORY) {
@@ -304,18 +317,18 @@ long CPU()
 		switch (opcode) {
 		case 0:                 //halt
 			printf("Machine is Halting\n");
-			return OK;
+			return SIMULATOR_STATUS_HALTED;
 			clock += 12;
 			break;
 		case 1:                 //add
-			psr = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (psr != OK) {                //Return ERROR value to Main
-				return psr;
+			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+			if (status != OK) {                //Return ERROR value to Main
+				return status;
 			}
 
-			psr = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
-			if (psr != OK) {
-				return psr;
+			status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
+			if (status != OK) {
+				return status;
 			}
 
 			//Add Operand Values
@@ -333,14 +346,14 @@ long CPU()
 			clock += 3;
 			break;
 		case 2:                 //subtract
-			psr = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (psr != OK) {                //Return ERROR value to Main
-				return psr;
+			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+			if (status != OK) {                //Return ERROR value to Main
+				return status;
 			}
 
-			psr = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
-			if (psr != OK) {
-				return psr;
+			status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
+			if (status != OK) {
+				return status;
 			}
 
 			//Subtract Operand Values
@@ -358,14 +371,14 @@ long CPU()
 			clock += 3;
 			break;
 		case 3:                 //multiply
-			psr = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (psr != OK) {                //Return ERROR value to Main
-				return psr;
+			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+			if (status != OK) {                //Return ERROR value to Main
+				return status;
 			}
 
-			psr = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
-			if (psr != OK) {
-				return psr;
+			status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
+			if (status != OK) {
+				return status;
 			}
 
 			//Multiply Operand Values
@@ -383,18 +396,24 @@ long CPU()
 			clock += 6;
 			break;
 		case 4:                 //divide
-			psr = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (psr != OK) {                //Return ERROR value to Main
-				return psr;
+			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+			if (status != OK) {                //Return ERROR value to Main
+				return status;
 			}
 
-			psr = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
-			if (psr != OK) {
-				return psr;
+			status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
+			if (status != OK) {
+				return status;
 			}
 
 			//Divide Operand Values
-			result = op1val / op2val;
+			if (op2val != 0)		// Division by Zero Check
+				result = op1val / op2val;
+			else {
+				printf("ERROR: Line %d Division by Zero\n", pc);
+				return ErrorRuntime;
+			}
+
 
 			// If op1mode is Register Mode
 			if (op1mode == 1) {
@@ -408,14 +427,14 @@ long CPU()
 			clock += 6;
 			break;
 		case 5:                 //move (op1 <- op2)
-			psr = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (psr != OK) {                //Return ERROR value to Main
-				return psr;
+			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+			if (status != OK) {                //Return ERROR value to Main
+				return status;
 			}
 
-			psr = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
-			if (psr != OK) {
-				return psr;
+			status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
+			if (status != OK) {
+				return status;
 			}
 
 			// If op1mode is Register Mode
@@ -439,9 +458,9 @@ long CPU()
 			clock += 2;
 			break;
 		case 7:                 //branch on minus
-			psr = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (psr != OK) {                //Return ERROR value to Main
-				return psr;
+			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+			if (status != OK) {                //Return ERROR value to Main
+				return status;
 			}
 
 			if (op1val < 0) {
@@ -457,9 +476,9 @@ long CPU()
 			clock += 4;
 			break;
 		case 8:                 //branch on plus
-			psr = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (psr != OK) {                //Return ERROR value to Main
-				return psr;
+			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+			if (status != OK) {                //Return ERROR value to Main
+				return status;
 			}
 
 			if (op1val > 0) {
@@ -475,9 +494,9 @@ long CPU()
 			clock += 4;
 			break;
 		case 9:                 //branch on zero
-			psr = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (psr != OK) {                //Return ERROR value to Main
-				return psr;
+			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+			if (status != OK) {                //Return ERROR value to Main
+				return status;
 			}
 
 			if (op1val == 0) {
@@ -493,12 +512,12 @@ long CPU()
 			clock += 4;
 			break;
 		case 10:                //push
-			psr = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (psr != OK) {                //Return ERROR value to Main
-				return psr;
+			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+			if (status != OK) {                //Return ERROR value to Main
+				return status;
 			}
 
-			if ((MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) == 0) {
+			if ((MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) != 0) {
 				printf("ERROR: Stack Address Overflow\n");
 				return ErrorStackOverflow;
 			}
@@ -509,13 +528,13 @@ long CPU()
 			clock += 2;
 			break;
 		case 11:                //pop
-			if ((MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) == 0) {
+			if ((MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) != 0) {
 				printf("ERROR: Stack Address Underflow\n");
 				return ErrorStackUnderflow;
 			}
 
 			// Pop Stack
-			op1addr = mem[sp];
+			op1val = mem[sp];
 			sp--;
 			clock += 2;
 			break;
@@ -525,7 +544,7 @@ long CPU()
 				return ErrorRuntime;
 			}
 			long SystemCallID = mem[pc++];
-			//psr = SystemCall(op1val, SystemCallID);
+			status = SystemCall(SystemCallID);
 			clock += 12;
 			break;
 		default:                //Invalid Opcode
@@ -557,8 +576,10 @@ long CPU()
 //TODO: Implement Function
 long SystemCall(long SystemCallID)
 {
-	psr = OS_MODE;		// Set system mode to OS mode
+	psr = MACHINE_MODE_OS;		// Set system mode to OS mode
 	printf("MACHINE STATUS SET >>> OS");
+
+	long status = OK;
 
 	//TODO: Unsure what file name should be and where to define priority
 	//maybe pc+1 value?
@@ -567,7 +588,7 @@ long SystemCall(long SystemCallID)
 
 	switch (SystemCallID) {
 	case 1:                 //process_create
-		CreateProcess(filename, priority);
+		status = CreateProcess(filename, priority);
 		break;
 	case 2:                 //process_delete
 
@@ -605,6 +626,8 @@ long SystemCall(long SystemCallID)
 
 		break;
 	}
+	psr = MACHINE_MODE_USER;		// Restore to User Mode
+	return status;
 }
 
 /*******************************************************************************
@@ -639,7 +662,7 @@ long FetchOperand(
 	//Fetch value based on value based on the operand mode
 	switch (OpMode) {
 	case 1:         //Register Mode
-		OpMode = -1;         //Set to Invalid Address
+		*OpAddress = -1;         //Set to Invalid Address
 		*OpValue = gpr[OpReg];
 		break;
 	case 2:         //Register deferred mode

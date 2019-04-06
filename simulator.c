@@ -31,7 +31,9 @@
 /*** VIRTUAL SYSTEM PARAMETERS ***/
 #define SYSTEM_MEMORY_SIZE      10000
 #define GPR_NUMBER              8
-#define  DEFAULT_PRIORITY	128
+#define DEFAULT_PRIORITY	128
+#define TIMESLICE		200
+
 
 /*** VALUE CONSTANTS ***/
 #define SCRIPT_INDICATOR_END	-1
@@ -264,10 +266,11 @@ long CPU()
 	long opcode, op1mode, op1gpr, op2mode, op2gpr, op1addr, op1val,
 	     op2addr, op2val, remainder, result, SystemCallID;
 	long status = OK;
+	long TimeLeft = TIMESLICE;
 
 
 	// Run CPU until HALT state
-	while (status = OK) {
+	while (status = OK && TimeLeft > 0) {
 
 		// Fetch Cycle
 		if (0 <= pc <= MAX_USER_MEMORY) {
@@ -319,6 +322,7 @@ long CPU()
 			printf("Machine is Halting\n");
 			return SIMULATOR_STATUS_HALTED;
 			clock += 12;
+			TimeLeft -= 12;
 			break;
 		case 1:                 //add
 			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
@@ -344,6 +348,7 @@ long CPU()
 				mem[op1addr] = result;
 			}
 			clock += 3;
+			TimeLeft -= 3;
 			break;
 		case 2:                 //subtract
 			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
@@ -369,6 +374,7 @@ long CPU()
 				mem[op1addr] = result;
 			}
 			clock += 3;
+			TimeLeft -= 3;
 			break;
 		case 3:                 //multiply
 			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
@@ -394,6 +400,7 @@ long CPU()
 				mem[op1addr] = result;
 			}
 			clock += 6;
+			TimeLeft -= 6;
 			break;
 		case 4:                 //divide
 			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
@@ -425,6 +432,7 @@ long CPU()
 				mem[op1addr] = result;
 			}
 			clock += 6;
+			TimeLeft -= 6;
 			break;
 		case 5:                 //move (op1 <- op2)
 			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
@@ -447,6 +455,7 @@ long CPU()
 				mem[op1addr] = op2val;
 			}
 			clock += 2;
+			TimeLeft -= 2;
 			break;
 		case 6:                 //branch
 			if (0 <= pc <= MAX_USER_MEMORY)
@@ -456,6 +465,7 @@ long CPU()
 				return ErrorRuntime;
 			}
 			clock += 2;
+			TimeLeft -= 2;
 			break;
 		case 7:                 //branch on minus
 			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
@@ -474,6 +484,7 @@ long CPU()
 				pc++;	//Skip Branch and advance
 			}
 			clock += 4;
+			TimeLeft -= 4;
 			break;
 		case 8:                 //branch on plus
 			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
@@ -492,6 +503,7 @@ long CPU()
 				pc++;	//Skip Branch and advance
 			}
 			clock += 4;
+			TimeLeft -= 4;
 			break;
 		case 9:                 //branch on zero
 			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
@@ -510,6 +522,7 @@ long CPU()
 				pc++;	//Skip Branch and advance
 			}
 			clock += 4;
+			TimeLeft -= 4;
 			break;
 		case 10:                //push
 			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
@@ -526,6 +539,7 @@ long CPU()
 			sp++;
 			mem[sp] = op1val;
 			clock += 2;
+			TimeLeft -= 2;
 			break;
 		case 11:                //pop
 			if ((MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) != 0) {
@@ -537,6 +551,7 @@ long CPU()
 			op1val = mem[sp];
 			sp--;
 			clock += 2;
+			TimeLeft -= 2;
 			break;
 		case 12:                //system call
 			if (MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) {
@@ -546,6 +561,7 @@ long CPU()
 			long SystemCallID = mem[pc++];
 			status = SystemCall(SystemCallID);
 			clock += 12;
+			TimeLeft -= 12;
 			break;
 		default:                //Invalid Opcode
 			printf("ERROR: Invalid opcode on line %d\n", mar);         // Error
@@ -580,11 +596,6 @@ long SystemCall(long SystemCallID)
 	printf("MACHINE STATUS SET >>> OS");
 
 	long status = OK;
-
-	//TODO: Unsure what file name should be and where to define priority
-	//maybe pc+1 value?
-	char *filename = "test";
-	long priority = DEFAULT_PRIORITY;
 
 	switch (SystemCallID) {
 	case 1:                 //process_create

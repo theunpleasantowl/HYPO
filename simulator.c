@@ -40,7 +40,7 @@
 
 // Simulator Execution Status
 #define SIMULATOR_STATUS_HALTED	0
-//#define SIMULATOR_STATUS_OK	1
+#define SIMULATOR_STATUS_OK	1
 
 // Machine PSR Modes
 #define MACHINE_MODE_USER	0
@@ -71,9 +71,10 @@
 /*** GLOBAL VARS ***/
 long mem[SYSTEM_MEMORY_SIZE], gpr[GPR_NUMBER];
 long mar, mbr, clock, ir, psr, pc, sp;
-long OSFreeList, UserFreeList, RQ;
+long OSFreeList, UserFreeList, RQ, WQ;
 long EndOfList = -1; //indicates end of OSFreeList or UserFreeList
 
+long ProcessID = 1;
 
 /*** FUNCTION PROTOTYPES ***/
 void InitializeSystem();
@@ -88,12 +89,17 @@ long AllocateOSMemory(long RequestedSize);
 long FreeOSMemory(long ptr, long size);
 long AllocateUserMemory(long size);
 long FreeUserMemory(long ptr, long size);
-
 long MemAllocSystemCall();
 long MemFreeSystemCall();
+void InitializePCB();
+long PrintQueue(long Qptr);
+long InsertIntoRQ(long PCBptr);
+long InsertIntoRQ(long PCBptr);
+long SelectProcessFromRQ();
+void SaveContext(long PCBptr);
+void Dispatcher(long PCBptr);
+void TerminateProcess(long PCBptr);
 
-
-/*** FUNCTIONS ***/
 
 /*******************************************************************************
  * Function: InitializeSystem
@@ -109,7 +115,6 @@ long MemFreeSystemCall();
  * Function Return Value
  *      None
  ******************************************************************************/
-
 void InitializeSystem()
 {
 	/* Initialize Memory Array and then GPR Register Array */
@@ -172,7 +177,6 @@ int main()
 
 /*******************************************************************************
  * Function: AbsoluteLoader
-
  * Description: Opens a file that contains HYPO-machine code (user program)
  * into the HYPO machine memory.
  * On a successful file load the function returns the value in the `End of
@@ -215,9 +219,10 @@ int AbsoluteLoader(char* filename)
 				return word;                    //Success
 			printf("ERROR: PC value Invalid\n");    //Error
 			return ErrorInvalidPCValue;
-		}else if (0 <= addr <= MAX_USER_MEMORY)
+		}
+		else if (0 <= addr <= MAX_USER_MEMORY)
 			mem[addr] = word;
-		else{
+		else {
 			fclose(fp);
 			printf("ERROR: Address Location in Invalid Range\n");
 			return ErrorInvalidAddress;
@@ -264,7 +269,7 @@ long CPU()
 {
 	/* Local Variables */
 	long opcode, op1mode, op1gpr, op2mode, op2gpr, op1addr, op1val,
-	     op2addr, op2val, remainder, result, SystemCallID;
+		op2addr, op2val, remainder, result, SystemCallID;
 	long status = OK;
 	long TimeLeft = TIMESLICE;
 
@@ -277,9 +282,10 @@ long CPU()
 			mar = pc;
 			pc++;
 			mbr = mem[mar];
-		}else  {
+		}
+		else {
 			printf("ERROR: Invalid Runtime Address. Line: %d "
-			       "Address: %d\n", pc, mem[pc]);          // Error
+				"Address: %d\n", pc, mem[pc]);          // Error
 			return(ErrorInvalidAddress);
 		}
 
@@ -309,7 +315,7 @@ long CPU()
 
 		// Decode Validation
 		if (((0 <= op1mode <= 6) && (0 <= op2mode <= 6) &&
-		     (0 <= op1gpr <= GPR_NUMBER) && (0 <= op2gpr <= GPR_NUMBER)) == 0) {
+			(0 <= op1gpr <= GPR_NUMBER) && (0 <= op2gpr <= GPR_NUMBER)) == 0) {
 			printf("ERROR: Invalid Instruction on line %d\n", mar); // Error
 			return ErrorInvalidInstruction;
 		}
@@ -341,10 +347,12 @@ long CPU()
 			// If op1mode is Register Mode
 			if (op1mode == 1) {
 				gpr[op1gpr] = result;
-			}else if (op1mode == 6) {
+			}
+			else if (op1mode == 6) {
 				printf("ERROR: Line %d Destination cannot be immediate\n", pc);
 				return ErrorImmediateMode;
-			}else  {        //Store result in op1address
+			}
+			else {        //Store result in op1address
 				mem[op1addr] = result;
 			}
 			clock += 3;
@@ -367,10 +375,12 @@ long CPU()
 			// If op1mode is Register Mode
 			if (op1mode == 1) {
 				gpr[op1gpr] = result;
-			}else if (op1mode == 6) {
+			}
+			else if (op1mode == 6) {
 				printf("ERROR: Line %d Destination cannot be immediate\n", pc);
 				return ErrorImmediateMode;
-			}else  {        //Store result in op1address
+			}
+			else {        //Store result in op1address
 				mem[op1addr] = result;
 			}
 			clock += 3;
@@ -393,10 +403,12 @@ long CPU()
 			// If op1mode is Register Mode
 			if (op1mode == 1) {
 				gpr[op1gpr] = result;
-			}else if (op1mode == 6) {
+			}
+			else if (op1mode == 6) {
 				printf("ERROR: Line %d Destination cannot be immediate\n", pc);
 				return ErrorImmediateMode;
-			}else  {        //Store result in op1address
+			}
+			else {        //Store result in op1address
 				mem[op1addr] = result;
 			}
 			clock += 6;
@@ -425,10 +437,12 @@ long CPU()
 			// If op1mode is Register Mode
 			if (op1mode == 1) {
 				gpr[op1gpr] = result;
-			}else if (op1mode == 6) {
+			}
+			else if (op1mode == 6) {
 				printf("ERROR: Line %d Destination cannot be immediate\n", pc);
 				return ErrorImmediateMode;
-			}else  {        //Store result in op1address
+			}
+			else {        //Store result in op1address
 				mem[op1addr] = result;
 			}
 			clock += 6;
@@ -448,10 +462,12 @@ long CPU()
 			// If op1mode is Register Mode
 			if (op1mode == 1) {
 				gpr[op1gpr] = op2val;
-			}else if (op1mode == 6) {
+			}
+			else if (op1mode == 6) {
 				printf("ERROR: Line %d Destination cannot be immediate\n", pc);
 				return ErrorImmediateMode;
-			}else  {        //Store result in op1address
+			}
+			else {        //Store result in op1address
 				mem[op1addr] = op2val;
 			}
 			clock += 2;
@@ -460,7 +476,7 @@ long CPU()
 		case 6:                 //branch
 			if (0 <= pc <= MAX_USER_MEMORY)
 				pc = mem[pc];
-			else{
+			else {
 				printf("ERROR: Invalid Branch Address at Runtime\n");
 				return ErrorRuntime;
 			}
@@ -476,11 +492,13 @@ long CPU()
 			if (op1val < 0) {
 				if (0 <= pc <= MAX_USER_MEMORY) {
 					pc = mem[pc];
-				}else  {
+				}
+				else {
 					printf("ERROR: Invalid Branch Address at Runtime\n");
 					return ErrorRuntime;
 				}
-			}else  {
+			}
+			else {
 				pc++;	//Skip Branch and advance
 			}
 			clock += 4;
@@ -495,11 +513,13 @@ long CPU()
 			if (op1val > 0) {
 				if (0 <= pc <= MAX_USER_MEMORY) {
 					pc = mem[pc];
-				}else  {
+				}
+				else {
 					printf("ERROR: Invalid Branch Address at Runtime\n");
 					return ErrorRuntime;
 				}
-			}else  {
+			}
+			else {
 				pc++;	//Skip Branch and advance
 			}
 			clock += 4;
@@ -514,11 +534,13 @@ long CPU()
 			if (op1val == 0) {
 				if (0 <= pc <= MAX_USER_MEMORY) {
 					pc = mem[pc];
-				}else  {
+				}
+				else {
 					printf("ERROR: Invalid Branch Address at Runtime\n");
 					return ErrorRuntime;
 				}
-			}else  {
+			}
+			else {
 				pc++;	//Skip Branch and advance
 			}
 			clock += 4;
@@ -589,7 +611,7 @@ long CPU()
  *      ErrorInvalidPCValue		-Direct Mode PC out of bounds
  ******************************************************************************/
 
-//TODO: Implement Function
+ //TODO: Implement Function
 long SystemCall(long SystemCallID)
 {
 	psr = MACHINE_MODE_OS;		// Set system mode to OS mode
@@ -599,7 +621,7 @@ long SystemCall(long SystemCallID)
 
 	switch (SystemCallID) {
 	case 1:                 //process_create
-		status = CreateProcess(filename, priority);
+		//status = CreateProcess(filename, priority);
 		break;
 	case 2:                 //process_delete
 
@@ -608,12 +630,12 @@ long SystemCall(long SystemCallID)
 
 		break;
 	case 4:                 //mem_alloc
-	    //Dynamic memory allocation: Allocate user free memory system call
-        MemAllocSystemCall();
+		//Dynamic memory allocation: Allocate user free memory system call
+		MemAllocSystemCall();
 		break;
 	case 5:                 //mem_free
-	    // Free dynamically allocated user memory system call
-        MemFreeSystemCall();
+		// Free dynamically allocated user memory system call
+		MemFreeSystemCall();
 		break;
 	case 6:                 //msg_send
 
@@ -681,7 +703,8 @@ long FetchOperand(
 
 		if (0 <= OpAddress <= MAX_USER_MEMORY) {
 			*OpValue = mem[*OpAddress];         //Grab OpValue in Mem
-		}else  {
+		}
+		else {
 			printf("ERROR: Invalid Fetch Operand Address\n");
 			return ErrorInvalidAddress;
 		}
@@ -692,7 +715,8 @@ long FetchOperand(
 
 		if (0 <= OpAddress <= MAX_USER_MEMORY) {
 			*OpValue = mem[*OpAddress];         //Grab OpValue in Mem
-		}else  {
+		}
+		else {
 			printf("ERROR: Invalid Fetch Operand Address\n");
 			return ErrorInvalidAddress;
 		}
@@ -704,7 +728,8 @@ long FetchOperand(
 		*OpAddress = gpr[OpReg];
 		if (0 <= OpAddress <= MAX_USER_MEMORY) {
 			*OpValue = mem[*OpAddress];         //Grab OpValue in Mem
-		}else  {
+		}
+		else {
 			printf("ERROR: Invalid Fetch Operand Address\n");
 			return ErrorInvalidAddress;
 		}
@@ -719,7 +744,8 @@ long FetchOperand(
 		*OpAddress = mem[pc++];
 		if (0 <= *OpAddress <= MAX_USER_MEMORY) {
 			*OpValue = mem[*OpAddress];
-		}else  {
+		}
+		else {
 			printf("ERROR: Invalid Address\n");
 			return ErrorInvalidAddress;
 		}
@@ -820,8 +846,9 @@ void DumpMemory(
  * Function Return Value
  *      None
  ******************************************************************************/
-long CreateProcess (char* filename, long priority)
+long CreateProcess(char* filename, long priority)
 {
+
 	// Allocate space for Process Control Block
 	long *PCBptr = &EndOfList; //TODO: Wrong behavior,
 
@@ -834,7 +861,7 @@ long CreateProcess (char* filename, long priority)
 	else
 		return ErrorFileOpen;
 
-					// Allocate stack space from user free list
+	// Allocate stack space from user free list
 	pcb->ptr = StackSize; 		// Set ptr = Allocate User Memory of size StackSize;
 	if (ptr < 0)			// Check for error
 	{  				// User memory allocation failed
@@ -842,11 +869,11 @@ long CreateProcess (char* filename, long priority)
 		return(ErrorInvalidMemorySize);  		// return error code
 	}
 
-	// Store stack information in the PCB â€“ SP, ptr, and size
-	pcb->sp           = ptr + SIZE;		// empty stack is high address, full is low address
+	// Store stack information in the PCB – SP, ptr, and size
+	pcb->sp = ptr + SIZE;		// empty stack is high address, full is low address
 	pcb->StartAddress = ptr;
-	pcb->StackSize    = SIZE;
-	pcb->priority     = DEFAULT_PRIORITY;	// Set priority
+	pcb->StackSize = SIZE;
+	pcb->priority = DEFAULT_PRIORITY;	// Set priority
 
 	DumpMemory("PCB Created", ptr, SIZE);				// Dump PCB stack
 
@@ -877,20 +904,20 @@ long CreateProcess (char* filename, long priority)
  *      None
  ******************************************************************************/
 
-long AllocateOSMemory (long RequestedSize)  // return value contains address or error
+long AllocateOSMemory(long RequestedSize)  // return value contains address or error
 {
 	// Allocate memory from OS free space, which is organized as link
-	if(OSFreeList == EndOfList)
+	if (OSFreeList == EndOfList)
 	{
 		//TODO display no free OS memory error;
 		return(ErrorNoFreeMemory);   // ErrorNoFreeMemory is constant set to < 0
 	}
-	if(RequestedSize < 0)
+	if (RequestedSize < 0)
 	{
 		//TODO display invalid size error;
 		return(ErrorInvalidMemorySize);  // ErrorInvalidMemorySize is constant < 0
 	}
-	if(RequestedSize == 1)
+	if (RequestedSize == 1)
 		RequestedSize = 2;  // Minimum allocated memory is 2 locations
 
 	long CurrentPtr = OSFreeList;
@@ -898,9 +925,9 @@ long AllocateOSMemory (long RequestedSize)  // return value contains address or 
 	while (CurrentPtr != EndOfList)
 	{
 		// Check each block in the link list until block with requested memory size is found
-		if(mem[CurrentPtr + 1] == RequestedSize)
+		if (mem[CurrentPtr + 1] == RequestedSize)
 		{  // Found block with requested size.  Adjust pointers
-			if(CurrentPtr == OSFreeList)  // first block
+			if (CurrentPtr == OSFreeList)  // first block
 			{
 				OSFreeList = mem[CurrentPtr];  // first entry is pointer to next block
 				mem[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
@@ -913,12 +940,12 @@ long AllocateOSMemory (long RequestedSize)  // return value contains address or 
 				return(CurrentPtr);    // return memory address
 			}
 		}
-		else if(mem[CurrentPtr + 1] > RequestedSize)
+		else if (mem[CurrentPtr + 1] > RequestedSize)
 		{  // Found block with size greater than requested size
-			if(CurrentPtr == OSFreeList)  // first block
+			if (CurrentPtr == OSFreeList)  // first block
 			{
 				mem[CurrentPtr + RequestedSize] = mem[CurrentPtr];  // move next block ptr
-				mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr +1] - RequestedSize;
+				mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr + 1] - RequestedSize;
 				OSFreeList = CurrentPtr + RequestedSize;  // address of reduced block
 				mem[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
 				return(CurrentPtr);	// return memory address
@@ -926,7 +953,7 @@ long AllocateOSMemory (long RequestedSize)  // return value contains address or 
 			else  // not first black
 			{
 				mem[CurrentPtr + RequestedSize] = mem[CurrentPtr];  // move next block ptr
-				mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr +1] - RequestedSize;
+				mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr + 1] - RequestedSize;
 				mem[PreviousPtr] = CurrentPtr + RequestedSize;  // address of reduced block
 				mem[CurrentPtr] = EndOfList;  // reset next pointer in the allocated block
 				return(CurrentPtr);	// return memory address
@@ -961,18 +988,18 @@ long AllocateOSMemory (long RequestedSize)  // return value contains address or 
 
 long FreeOSMemory(long ptr, long size)
 {
-	if(ptr < 7000 || ptr > MAX_OS_MEMORY)
+	if (ptr < 7000 || ptr > MAX_OS_MEMORY)
 	{
 		printf("ERROR: Invalid Adress");
 		return(ErrorInvalidAddress);
 	}
 
-	if(size == 1)
+	if (size == 1)
 	{
 		size = 2; //minimum allocated size
 	}
 
-	else if(size < 1 ||(ptr+size) >= MAX_OS_MEMORY)
+	else if (size < 1 || (ptr + size) >= MAX_OS_MEMORY)
 	{
 		//invalid size
 		printf("ERROR: Invalid size or Invalid Address");
@@ -1002,30 +1029,30 @@ long FreeOSMemory(long ptr, long size)
 long AllocateUserMemory(long RequestedSize) //return value contains address or ERROR
 {
 	// Allocate memory from OS free space, which is organized as link
-	if(UserFreeList == EndOfList)
+	if (UserFreeList == EndOfList)
 	{
 		printf("ERROR: No free User memory\n");
 		return(ErrorNoFreeMemory);
 	}
 
-	if(RequestedSize < 0)
+	if (RequestedSize < 0)
 	{
 		printf("ERROR: Invalid Memory Size\n");
 		return(ErrorInvalidMemorySize);
 	}
 
-	if(RequestedSize == 1)
+	if (RequestedSize == 1)
 	{
 		RequestedSize = 2; //minimum allocated memory is 2 locations
 	}
 
 	long CurrentPtr = UserFreeList;
 	long PreviousPtr = EndOfList;
-	while(CurrentPtr != EndOfList)
+	while (CurrentPtr != EndOfList)
 	{
-		if(mem[CurrentPtr + 1] == RequestedSize)
+		if (mem[CurrentPtr + 1] == RequestedSize)
 		{//found block with requested Size
-			if(CurrentPtr == UserFreeList) // first block
+			if (CurrentPtr == UserFreeList) // first block
 			{
 				UserFreeList = mem[CurrentPtr]; //first entry is pointer to next block
 				mem[CurrentPtr] = EndOfList;  //reset next pointer in the allocated blcok
@@ -1039,14 +1066,14 @@ long AllocateUserMemory(long RequestedSize) //return value contains address or E
 			}
 		}
 
-		else if(mem[CurrentPtr+1] > RequestedSize)
+		else if (mem[CurrentPtr + 1] > RequestedSize)
 		{
 			//found block with size greater than RequestedSize
-			if(CurrentPtr == UserFreeList) //first block
+			if (CurrentPtr == UserFreeList) //first block
 			{
 				mem[CurrentPtr + RequestedSize] = mem[CurrentPtr];
 
-				mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr +1] - RequestedSize;
+				mem[CurrentPtr + RequestedSize + 1] = mem[CurrentPtr + 1] - RequestedSize;
 
 				UserFreeList = CurrentPtr + RequestedSize; //address of reduced block
 				mem[CurrentPtr] = EndOfList; //reset next pointer in the allocated block
@@ -1093,18 +1120,18 @@ long AllocateUserMemory(long RequestedSize) //return value contains address or E
 
 long FreeUserMemory(long ptr, long size)
 {
-	if(ptr < 0 || ptr > MAX_USER_MEMORY)
+	if (ptr < 0 || ptr > MAX_USER_MEMORY)
 	{
 		printf("ERROR: Invalid Adress");
 		return(ErrorInvalidAddress);
 	}
 
-	if(size == 1)
+	if (size == 1)
 	{
 		size = 2; //minimum allocated size
 	}
 
-	else if(size < 1 ||(ptr+size) >= MAX_USER_MEMORY)
+	else if (size < 1 || (ptr + size) >= MAX_USER_MEMORY)
 	{
 		//invalid size
 		printf("ERROR: Invalid size or Invalid Address");
@@ -1139,18 +1166,18 @@ long MemAllocSystemCall()
 	long Size = gpr[2];
 
 	//check if size is out of range
-	if(Size < 1 || Size > MAX_USER_MEMORY)
+	if (Size < 1 || Size > MAX_USER_MEMORY)
 	{
 		printf("Error: InvalidAddress");
 		return(ErrorInvalidAddress);
 	}
 
-	if(Size == 1)
+	if (Size == 1)
 		Size = 2;
 
 	gpr[1] = AllocateUserMemory(Size);
 
-	if(gpr[1] < 0)
+	if (gpr[1] < 0)
 	{
 		gpr[0] = gpr[1]; //set GPR0 to have the return status
 	}
@@ -1188,13 +1215,13 @@ long MemFreeSystemCall()
 	long Size = gpr[2];
 
 	//check if size is out of range
-	if(Size < 1 || Size > MAX_USER_MEMORY)
+	if (Size < 1 || Size > MAX_USER_MEMORY)
 	{
 		printf("Error: InvalidAddress");
 		return(ErrorInvalidAddress);
 	}
 
-	if(Size == 1)
+	if (Size == 1)
 		Size = 2;
 
 	gpr[0] = FreeUserMemory(gpr[1], Size);
@@ -1203,3 +1230,288 @@ long MemFreeSystemCall()
 
 	return gpr[0];
 }
+
+/*******************************************************************************
+ * Function: InitializePCB
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+void InitializePCB(long PCBptr)
+{
+	/*
+		Set entire PCB area to 0 using PCBptr;	// Array initialization
+
+	 // Allocate PID and set it in the PCB. PID zero is invalidcvoid
+	 Set PID field in the PCB to = ProcessID++;  // ProcessID is global variable initialized to 1
+
+	 Set priority field in the PCB = Default Priority;  // DefaultPriority is a constant set to 128
+	 Set state field in the PCB = ReadyState;    // ReadyState is a constant set to 1
+	 Set next PCB pointer field in the PCB = EndOfList;  // EndOfList is a constant set to -1
+
+	 return;
+
+	*/
+}
+
+/*******************************************************************************
+ * Function: PrintQueue
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+long PrintQueue(long Qptr)
+{
+	long currentPCBPtr = Qptr;
+
+	if (currentPCBPtr == EndOfList)
+	{
+		printf("End of List reached");
+		return(OK);
+	}
+
+	while (currentPCBPtr != EndOfList)
+	{
+		//Print PCB passing currentPCBPtr
+		//currentPCBPtr = nextPCBlink;
+	}
+
+	return(OK);
+}
+
+/*******************************************************************************
+ * Function: SelectProcessFromRQ
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+long SelectProcessFromRQ()
+{
+	long PCBptr = RQ;
+
+	if (RQ != EndOfList)
+	{
+		// Remove first PCB RQ
+		// Set RQ = next PCB pointed by RQ
+	}
+
+	// Set next point to EOL in the PCB
+	// Set Next PCBfield in the given PCB to End of List
+
+	return(PCBptr);
+} //end of SelectProcessFromRQ
+
+
+/*******************************************************************************
+ * Function: SaveContext
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+void SaveContext(long PCBptr)
+{
+	//Assume PCBptr is a valid pointer
+
+	//Copy all CPU GPRs into PCB using PCBptr with or without using loop
+
+	//Set SP field in the PCB=SP; //Save SP
+	//Set PC field in the PCB=PC; //Save PC
+}
+
+/*******************************************************************************
+ * Function: Dispatcher
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+
+void Dispatcher(long PCBptr)
+{
+	//PCBptr is assumed to be correct
+
+	//copy CPU GPR register values from given PCB into the CPU registers 
+	//This is opposite of save CPU context 
+
+	//Restore SP and PC from given PCB
+	//UserMode is 2, OSMode is 1
+	psr = MACHINE_MODE_USER;
+
+	return;
+}
+
+/*******************************************************************************
+ * Function: Terminate Process
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+void TerminateProcess(long PCBptr)
+{
+	// Return stack memory using stack start 
+
+	// Return PCB memory using the PCBptr
+
+	return;
+} //end of TerminateProcess function()
+
+/*** FUNCTIONS ***/
+/*******************************************************************************
+ * Function: InsertIntoRQ
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+long InsertIntoRQ(long PCBptr)
+{
+	// Insert PCB according to Priority Round Robin algorithm
+	// Use priority in the PCB to find the correct place to insert
+	long PreviousPtr = EndOfList;
+	long CurrentPtr = EndOfList;
+
+	//check for invalid PCB memory address
+	if ((PCBptr < 0) || (PCBptr > MAX_OS_MEMORY))
+	{
+		printf("ERROR: Invalid Memory Address ");
+		return(ErrorInvalidAddress);
+	}
+
+	//TODO: replace StateIndex, ready, NextPointerIndex
+	mem[PCBptr + StateIndex] = ready;   //set state to ready
+	mem[PCBptr + NextPointerIndex] = EndOfList; //set next pointer to end of list
+
+	if (RQ == EndOfList) //RQ is empty
+	{
+		RQ = PCBptr;
+		return(OK);
+	}
+
+	//walk thru RQ and find place to insert
+	// PCB will be inserted at the end of its priority
+
+	while (CurrentPtr != EndOfList)
+	{
+		if (mem[PCBptr + PriorityIndex] > mem[CurrentPtr + PriorityIndex])
+		{
+			if (PreviousPtr == EndOfList)
+			{
+				// Enter PCB in the front of the list as first entry
+				mem[PCBptr + NextPointerIndex] = RQ;
+				RQ = PCBptr;
+				return(OK);
+			}
+			//enter PCB in the middle of the list
+			mem[PCBptr + NextPCBPointerIndex] = mem[PreviousPtr + NextPCBPointerIndex];
+			mem[PreviousPtr + NextPCBPointerIndex] = PCBptr;
+			return(OK);
+		}
+		else //PCB to inserted has lower or equal priority to the Current PCB in RQ
+		{
+			//go to next PCB in RQ
+			PreviousPtr = CurrentPtr;
+			CurrentPtr = mem[CurrentPtr + NextPCBPointerIndex];
+		}
+	} // end of while loop
+
+	//insert PCB at the end of RQ
+	mem[PreviousPtr + NextPointerIndex] = PCBptr;
+	return(OK);
+}
+
+/*** FUNCTIONS ***/
+/*******************************************************************************
+ * Function: InsertIntoWQ
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+long InsertIntoWQ(long PCBptr)
+{
+	//insert given PCB at the frnot of InsertIntoWQ
+
+	//check for invalid PCB memory Address
+	if ((PCBptr < 0) || (PCBptr > MAX_OS_MEMORY))
+	{
+		printf("ERROR: Invalid PCB address");
+		return(ErrorInvalidAddress); //error code < 0
+	}
+
+	mem[PCBptr + StateIndex] = Waiting; //What
+	mem[PCBptr + NextPointerIndex] = WQ;
+
+	WQ = PCBptr;
+
+	return(OK);
+} //end of InsertIntoWQ() function
+
+

@@ -869,7 +869,7 @@ long CreateProcess(char* filename, long priority)
 		return(ErrorInvalidMemorySize);  		// return error code
 	}
 
-	// Store stack information in the PCB – SP, ptr, and size
+	// Store stack information in the PCB ï¿½ SP, ptr, and size
 	pcb->sp = ptr + SIZE;		// empty stack is high address, full is low address
 	pcb->StartAddress = ptr;
 	pcb->StackSize = SIZE;
@@ -1514,4 +1514,253 @@ long InsertIntoWQ(long PCBptr)
 	return(OK);
 } //end of InsertIntoWQ() function
 
+/*******************************************************************************
+ * Function: CheckAndProcessInterrupt
+ *
+ * Description: Read interrupt ID number. Based on the interrupt ID, 
+ * service the interrupt.
+ * 
+ * Input Parameters: N/A
+ * 
+ * Output Parameters: N/A
+ * 
+ * Function Return Value: N/A
+ * 
+ ******************************************************************************/
 
+void CheckAndProcessInterrupt()
+{
+
+	int InterruptID;
+	// Prompt and read interrupt ID
+	printf("Possible interrupt IDs: \n0 - no interrupt
+									\n1 - run program
+									\n2 - shutdown system
+									\n3 - input operation completion (io_getc)
+									\n4 - output operation completion (io_putc)");
+
+	printf("Input interrupt ID: ");
+	scanf("%d", InterruptID);
+	printf("Interrupt read: %d", InterruptID);
+
+	// Process interrupt
+	switch(InterruptID);
+	{
+		case 0: // no interrupt
+			break;
+
+		case 1: // run program
+			ISRrunProgramInterrupt();
+			break;
+
+		case 2: // shutdown system
+			ISRshutdownSystem();
+			break;
+
+		case 3: // input operation completion (io_getc)
+			ISRinputCompletionInterrupt();
+			break;
+
+		case 4: // output operation completion (io_putc)
+			ISRoutputCompletionInterrupt();
+			break;
+
+		default: // invalid interrupt ID
+			printf("Invalid interrupt ID");
+			break;
+	}
+
+	return;
+}
+
+/*******************************************************************************
+ * Function: ISRrunProgramInterrupt
+ *
+ * Description: Read filename and create process.
+ * 
+ * Input Parameters: N/A
+ * 
+ * Output Parameters
+ * 		1. N/A
+ * 
+ * Function Return Value
+ * // 
+ ******************************************************************************/
+
+void ISRrunProgramInterrupt()
+{
+	char filename[30];
+
+	// Prompt and read filename
+	printf("Input filename: ");
+	fgets(filename, 30, stdin);
+
+	// Call Create Process passing filename and Default Priority as arguments
+	CreateProcess(filename, DEFAULT_PRIORITY);
+
+	return;
+}
+
+/*******************************************************************************
+ * Function: Input Completion Interrupt
+ *
+ * Description: Read PID of the process completing the io_getc operation and
+ * 				read one character from the keyboard (input device). Store the
+ * 				character in the GPR in the PCB of the process.
+ * 
+ * Input Parameters: N/A
+ * 
+ * Output Parameters: N/A
+ * 
+ * Function Return Value: N/A
+ ******************************************************************************/
+
+void ISRinputCompletionInterrupt()
+{
+
+	int ProcessID;
+	long currentPCBptr = WQ;
+	char PCBReplacementChar;
+
+	// Prompt and read PID of the process completing input completion
+	printf("Input PID of the process completing input completion: ");
+	scanf("%d", ProcessID);
+
+	// Search WQ to find the PCB having the given PID
+	while (currentPCBptr != EndOfList){
+		if (Mem[currentPCBptr] == ProcessID){
+		// Remove PCB from the WQ
+
+		// Read one character from standard input device keyboard
+			// (system call?)
+
+		
+		// Store the character in the GPR in the PCB, type cast char->long
+
+		// Set the process state to Ready in the PCB
+
+		// Insert PCB into RQ
+
+		break;
+		}
+	}
+
+	// If no match is found in WQ, then search RQ
+	currentPCBptr = RQ;
+	while (currentPCBptr != EndOfList){
+		if (Mem[currentPCBptr] == ProcessID) {
+		// Read one character from standard input device keyboard
+
+		// Store the character in the GPR in the PCB	
+
+		break;
+		}
+		
+	}
+
+	// If no matching PCB is found in WQ, and RQ, print invalid PID as an error message.
+	printf("Invalid Process ID");
+}
+
+/*******************************************************************************
+ * Function: Output Completion Interrupt
+ *
+ * Description: Read PID of the process completing the io_putc operation and 
+ * 				display one character on the monitor (output device) from the GPR
+ * 				in the PCB of the process
+ * 
+ * Input Parameters: N/A
+ * 
+ * Output Parameters: N/A
+ * 
+ * Function Return Value: N/A
+ ******************************************************************************/
+
+void ISRoutputCompletionInterrupt()
+{
+
+	int ProcessID;
+	long currentPCBptr = WQ;
+
+	// Prompt and read PID of the process completing input completion
+	printf("Input PID of the process completing input completion: ");
+	scanf("%d", ProcessID);
+
+	// Search WQ to find the PCB having the given PID
+	while (currentPCBptr != EndOfList){
+		if (Mem[currentPCBptr] == ProcessID){
+		// Remove PCB from the WQ
+
+		// Read one character from standard input device keyboard
+			// (system call?)
+		
+		
+		// Store the character in the GPR in the PCB, type cast char->long
+
+		// Set the process state to Ready in the PCB
+
+		// Insert PCB into RQ
+
+		break;
+		}
+	}
+
+	// If no match is found in WQ, then search RQ
+	currentPCBptr = RQ;
+	while (currentPCBptr != EndOfList){
+		if (Mem[currentPCBptr] == ProcessID) {
+		// Read one character from standard input device keyboard
+
+		// Store the character in the GPR in the PCB	
+
+		break;
+		}
+		
+	}
+
+	// If no matching PCB is found in WQ, and RQ, print invalid PID as an error message.
+	printf("Invalid Process ID");
+}
+
+/*******************************************************************************
+ * Function: IOGetC
+ *
+ * Description: Obtain one character from the user. Forces rescheduling
+ * 
+ * Input Parameters: R1 = the character read
+ * 
+ * Output Parameters
+ * 		1. R0 = return code, always OK.
+ * 
+ * Function Return Value
+ * //
+ ******************************************************************************/
+
+long IOGetCSystemCall(char R1, int *R0)
+{
+	R1 = getchar();
+	R0 = OK;
+	return R1;
+}
+
+/*******************************************************************************
+ * Function: IOPutC
+ *
+ * Description: Specifies a character to be printed on the user terminal.
+ * 				Forces rescheduling
+ * Input Parameters: R1 = character to be displayed
+ * 
+ * Output Parameters
+ * 		1. R0 = return code, always OK
+ *
+ * Function Return Value
+ * //
+ ******************************************************************************/
+
+long IOPutCSystemCall(char R1, int *R0)
+{
+	//printf("%d\n", R1);
+	putchar(R1);
+	R0 = OK;
+	return R0;
+}

@@ -1,38 +1,12 @@
-/*******************************************************************************
- * Title:	HYPO Machine - MTOPS
- * Authors:     //TODO
- * Date:
- * Class :     	CSCI.465 Operating Systems Internals
- * Professor:	Suban Krishnamoorthy
- * Program Title: HYPO MACHINE SIMULATION
- * Program Description: Emulates a hypothetical processing machine called `HYPO`
- * In contrast to binary processors, HYPO is a decimal machine. This program
- * recreates the functionality of HYPO's hardware components. HYPO is comprised
- * of various components:
- *
- * MAR		: Memory Address Register
- * MBR		: Memory Buffer Register
- * RAM		: Random Access Memory
- * IR          	: Instruction Register
- * SP		: Stack Pointer
- * PC		: Program Counter
- * GPR		: General Purpose Register
- * ALU		: Arithmetic and Logic Unit
- * PSR		: Processor Status Register
- * Clock	: System clock wth time in microseconds
- *
- * A detailed description of each function can be found in this document.
- *
- *
- ******************************************************************************/
-
-#include <stdio.h>
+﻿#include <stdio.h>
 
 /*** VIRTUAL SYSTEM PARAMETERS ***/
 #define SYSTEM_MEMORY_SIZE      10000
 #define GPR_NUMBER              8
 #define DEFAULT_PRIORITY	128
 #define TIMESLICE		200
+#define ReadyState 1
+#define EndOfList -1
 
 
 /*** VALUE CONSTANTS ***/
@@ -72,9 +46,33 @@
 long mem[SYSTEM_MEMORY_SIZE], gpr[GPR_NUMBER];
 long mar, mbr, clock, ir, psr, pc, sp;
 long OSFreeList, UserFreeList, RQ, WQ;
-long EndOfList = -1; //indicates end of OSFreeList or UserFreeList
+//long EndOfList = -1; //indicates end of OSFreeList or UserFreeList
 
 long ProcessID = 1;
+
+//PCB components
+const int Ready = 1;
+const int Running = 2;
+const int Waiting = 3;
+const int PCBsize = 22;
+const int NextPtr = 0;
+const int PCB_pid = 1;
+const int PCB_State = 2;
+const int PCB_Reason = 3;
+const int PCB_Priority = 4;
+const int PCB_StackSize = 5;
+const int PCB_StackStartAddr = 6;
+const int PCB_GPR0 = 11;
+const int PCB_GPR1 = 12;
+const int PCB_GPR2 = 13;
+const int PCB_GPR3 = 14;
+const int PCB_GPR4 = 15;
+const int PCB_GPR5 = 16;
+const int PCB_GPR6 = 17;
+const int PCB_GPR7 = 18;
+const int PCB_SP = 19;
+const int PCB_PC = 20;
+const int PCB_PSR = 21;
 
 /*** FUNCTION PROTOTYPES ***/
 void InitializeSystem();
@@ -85,6 +83,7 @@ long SystemCall(long SystemCallID);
 long FetchOperand(long OpMode, long OpReg, long *OpAddress, long *OpValue);
 void DumpMemory(char* String, long StartAddress, long size);
 long CreateProcess(char *filename, long priority);
+void TerminateProcess(long PCBptr);
 long AllocateOSMemory(long RequestedSize);
 long FreeOSMemory(long ptr, long size);
 long AllocateUserMemory(long size);
@@ -92,14 +91,44 @@ long FreeUserMemory(long ptr, long size);
 long MemAllocSystemCall();
 long MemFreeSystemCall();
 void InitializePCB();
+void PrintPCB(long PCBptr);
 long PrintQueue(long Qptr);
 long InsertIntoRQ(long PCBptr);
-long InsertIntoRQ(long PCBptr);
+long InsertIntoWQ(long PCBptr);
 long SelectProcessFromRQ();
 void SaveContext(long PCBptr);
 void Dispatcher(long PCBptr);
 void TerminateProcess(long PCBptr);
+void CheckAndProcessInterrupt();
+void ISRrunProgramInterrupt();
+void ISRinputCompletionInterrupt();
+void ISRoutputCompletionInterrupt();
+long io_getc(char R1, int *R0);
+long io_putc(char R1, int *R0);
 
+/*******************************************************************************
+ * Function: PrintPCB
+ * Description: Resets all Global Vars (Hardware) to an initial value 0
+ *
+ * Input Parameters
+ *      None
+ *
+ * Output Parameters
+ *      None
+ *
+ * Function Return Value
+ *      None
+ ******************************************************************************/
+
+void PrintPCB(long PCBptr)
+{
+	/*
+	Print the values of the following fields from PCB with a text before the value like below:
+		PCB address = 6000, Next PCB Ptr = 5000, PID = 2, State = 2, PC = 200, SP = 4000,
+		Priority = 127, Stack info: start address = 3990, size = 10
+		GPRs = print 8 values of GPR 0 to GPR 7
+	*/
+}  // end of PrintPCB() function
 
 /*******************************************************************************
  * Function: InitializeSystem
@@ -869,7 +898,7 @@ long CreateProcess(char* filename, long priority)
 		return(ErrorInvalidMemorySize);  		// return error code
 	}
 
-	// Store stack information in the PCB � SP, ptr, and size
+	// Store stack information in the PCB . SP, ptr, and size
 	pcb->sp = ptr + SIZE;		// empty stack is high address, full is low address
 	pcb->StartAddress = ptr;
 	pcb->StackSize = SIZE;
@@ -884,6 +913,30 @@ long CreateProcess(char* filename, long priority)
 
 	return(OK);
 }
+/*******************************************************************************
+ * Function: TerminateProcess
+ *
+ * Description: //TODO
+ *
+ * Input Parameters
+ * //TODO
+ *
+ * Output Parameters
+ * //TODO
+ *
+ * Function Return Value
+ * //TODO
+ ******************************************************************************/
+
+void TerminateProcess(long PCBptr)
+{
+	// Return stack memory using stack start address and stack size in the given PCB
+
+	// Return PCB memory using the PCBptr
+
+	return;
+
+} //End of TerminateProcess function
 
 /*******************************************************************************
  * Function: AllocateOSMemory
@@ -1248,19 +1301,25 @@ long MemFreeSystemCall()
 
 void InitializePCB(long PCBptr)
 {
-	/*
-		Set entire PCB area to 0 using PCBptr;	// Array initialization
+	//Set entire PCB area to 0 using PCBptr; 
+	// Array initialization
+	for (int i = 0; i < MAX_USER_MEMORY; i++)
+	{
+		mem[PCBptr + i] = 0;
+	}
+	// Allocate PID and set it in the PCB. PID zero is invalidcvoid
+	mem[PCBptr + PCB_pid] = ProcessID++;  // ProcessID is global variable initialized to 1
 
-	 // Allocate PID and set it in the PCB. PID zero is invalidcvoid
-	 Set PID field in the PCB to = ProcessID++;  // ProcessID is global variable initialized to 1
+	//Set state field in the PCB = ReadyState;
+	mem[PCBptr + PCB_State] = ReadyState;
 
-	 Set priority field in the PCB = Default Priority;  // DefaultPriority is a constant set to 128
-	 Set state field in the PCB = ReadyState;    // ReadyState is a constant set to 1
-	 Set next PCB pointer field in the PCB = EndOfList;  // EndOfList is a constant set to -1
+	//Set priority field in the PCB = Default Priority;  
+	mem[PCBptr + PCB_Priority] = DEFAULT_PRIORITY;
 
-	 return;
+	//Set next PCB pointer field in the PCB = EndOfList
+	mem[PCBptr + NextPtr] = EndOfList;
 
-	*/
+	return;
 }
 
 /*******************************************************************************
@@ -1369,7 +1428,6 @@ void SaveContext(long PCBptr)
  * //TODO
  ******************************************************************************/
 
-
 void Dispatcher(long PCBptr)
 {
 	//PCBptr is assumed to be correct
@@ -1384,30 +1442,6 @@ void Dispatcher(long PCBptr)
 	return;
 }
 
-/*******************************************************************************
- * Function: Terminate Process
- *
- * Description: //TODO
- *
- * Input Parameters
- * //TODO
- *
- * Output Parameters
- * //TODO
- *
- * Function Return Value
- * //TODO
- ******************************************************************************/
-void TerminateProcess(long PCBptr)
-{
-	// Return stack memory using stack start 
-
-	// Return PCB memory using the PCBptr
-
-	return;
-} //end of TerminateProcess function()
-
-/*** FUNCTIONS ***/
 /*******************************************************************************
  * Function: InsertIntoRQ
  *
@@ -1431,15 +1465,15 @@ long InsertIntoRQ(long PCBptr)
 	long CurrentPtr = EndOfList;
 
 	//check for invalid PCB memory address
-	if ((PCBptr < 0) || (PCBptr > MAX_OS_MEMORY))
+	if ((PCBptr < 0) || (PCBptr > MAX_USER_MEMORY))
 	{
 		printf("ERROR: Invalid Memory Address ");
 		return(ErrorInvalidAddress);
 	}
 
 	//TODO: replace StateIndex, ready, NextPointerIndex
-	mem[PCBptr + StateIndex] = ready;   //set state to ready
-	mem[PCBptr + NextPointerIndex] = EndOfList; //set next pointer to end of list
+	mem[PCBptr + PCB_State] = Ready;   //set state to ready
+	mem[PCBptr + NextPtr] = EndOfList; //set next pointer to end of list
 
 	if (RQ == EndOfList) //RQ is empty
 	{
@@ -1452,30 +1486,30 @@ long InsertIntoRQ(long PCBptr)
 
 	while (CurrentPtr != EndOfList)
 	{
-		if (mem[PCBptr + PriorityIndex] > mem[CurrentPtr + PriorityIndex])
+		if (mem[PCBptr + PCB_Priority] > mem[CurrentPtr + PCB_Priority])
 		{
 			if (PreviousPtr == EndOfList)
 			{
 				// Enter PCB in the front of the list as first entry
-				mem[PCBptr + NextPointerIndex] = RQ;
+				mem[PCBptr + NextPtr] = RQ;
 				RQ = PCBptr;
 				return(OK);
 			}
 			//enter PCB in the middle of the list
-			mem[PCBptr + NextPCBPointerIndex] = mem[PreviousPtr + NextPCBPointerIndex];
-			mem[PreviousPtr + NextPCBPointerIndex] = PCBptr;
+			mem[PCBptr + NextPtr] = mem[PreviousPtr + NextPtr];
+			mem[PreviousPtr + NextPtr] = PCBptr;
 			return(OK);
 		}
 		else //PCB to inserted has lower or equal priority to the Current PCB in RQ
 		{
 			//go to next PCB in RQ
 			PreviousPtr = CurrentPtr;
-			CurrentPtr = mem[CurrentPtr + NextPCBPointerIndex];
+			CurrentPtr = mem[CurrentPtr + NextPtr];
 		}
 	} // end of while loop
 
 	//insert PCB at the end of RQ
-	mem[PreviousPtr + NextPointerIndex] = PCBptr;
+	mem[PreviousPtr + NextPtr] = PCBptr;
 	return(OK);
 }
 
@@ -1497,7 +1531,7 @@ long InsertIntoRQ(long PCBptr)
 
 long InsertIntoWQ(long PCBptr)
 {
-	//insert given PCB at the frnot of InsertIntoWQ
+	//insert given PCB at the front of InsertIntoWQ
 
 	//check for invalid PCB memory Address
 	if ((PCBptr < 0) || (PCBptr > MAX_OS_MEMORY))
@@ -1506,8 +1540,8 @@ long InsertIntoWQ(long PCBptr)
 		return(ErrorInvalidAddress); //error code < 0
 	}
 
-	mem[PCBptr + StateIndex] = Waiting; //What
-	mem[PCBptr + NextPointerIndex] = WQ;
+	mem[PCBptr + PCB_State] = Waiting; //What
+	mem[PCBptr + NextPtr] = WQ;
 
 	WQ = PCBptr;
 
@@ -1517,15 +1551,15 @@ long InsertIntoWQ(long PCBptr)
 /*******************************************************************************
  * Function: CheckAndProcessInterrupt
  *
- * Description: Read interrupt ID number. Based on the interrupt ID, 
+ * Description: Read interrupt ID number. Based on the interrupt ID,
  * service the interrupt.
- * 
+ *
  * Input Parameters: N/A
- * 
+ *
  * Output Parameters: N/A
- * 
+ *
  * Function Return Value: N/A
- * 
+ *
  ******************************************************************************/
 
 void CheckAndProcessInterrupt()
@@ -1534,58 +1568,59 @@ void CheckAndProcessInterrupt()
 	int InterruptID;
 	// Prompt and read interrupt ID
 	printf("Possible interrupt IDs: \n0 - no interrupt
-									\n1 - run program
-									\n2 - shutdown system
-									\n3 - input operation completion (io_getc)
-									\n4 - output operation completion (io_putc)");
+		\n1 - run program
+		\n2 - shutdown system
+		\n3 - input operation completion(io_getc)
+		\n4 - output operation completion(io_putc)");
 
-	printf("Input interrupt ID: ");
+		printf("Input interrupt ID: ");
 	scanf("%d", InterruptID);
 	printf("Interrupt read: %d", InterruptID);
 
 	// Process interrupt
-	switch(InterruptID);
+	switch (InterruptID);
 	{
-		case 0: // no interrupt
-			break;
+	case 0: // no interrupt
+		break;
 
-		case 1: // run program
-			ISRrunProgramInterrupt();
-			break;
+	case 1: // run program
+		ISRrunProgramInterrupt();
+		break;
 
-		case 2: // shutdown system
-			ISRshutdownSystem();
-			break;
+	case 2: // shutdown system
+		ISRshutdownSystem();
+		break;
 
-		case 3: // input operation completion (io_getc)
-			ISRinputCompletionInterrupt();
-			break;
+	case 3: // input operation completion (io_getc)
+		ISRinputCompletionInterrupt();
+		break;
 
-		case 4: // output operation completion (io_putc)
-			ISRoutputCompletionInterrupt();
-			break;
+	case 4: // output operation completion (io_putc)
+		ISRoutputCompletionInterrupt();
+		break;
 
-		default: // invalid interrupt ID
-			printf("Invalid interrupt ID");
-			break;
+	default: // invalid interrupt ID
+		printf("Invalid interrupt ID");
+		break;
 	}
 
 	return;
 }
 
+
 /*******************************************************************************
- * Function: ISRrunProgramInterrupt
- *
- * Description: Read filename and create process.
- * 
- * Input Parameters: N/A
- * 
- * Output Parameters
- * 		1. N/A
- * 
- * Function Return Value
- * // 
- ******************************************************************************/
+* Function: ISRrunProgramInterrupt
+*
+* Description: Read filename and create process.
+*
+* Input Parameters: N/A
+*
+* Output Parameters
+* 		1. N/A
+*
+* Function Return Value
+* //
+******************************************************************************/
 
 void ISRrunProgramInterrupt()
 {
@@ -1602,18 +1637,18 @@ void ISRrunProgramInterrupt()
 }
 
 /*******************************************************************************
- * Function: Input Completion Interrupt
- *
- * Description: Read PID of the process completing the io_getc operation and
- * 				read one character from the keyboard (input device). Store the
- * 				character in the GPR in the PCB of the process.
- * 
- * Input Parameters: N/A
- * 
- * Output Parameters: N/A
- * 
- * Function Return Value: N/A
- ******************************************************************************/
+* Function: Input Completion Interrupt
+*
+* Description: Read PID of the process completing the io_getc operation and
+* 				read one character from the keyboard (input device). Store the
+* 				character in the GPR in the PCB of the process.
+*
+* Input Parameters: N/A
+*
+* Output Parameters: N/A
+*
+* Function Return Value: N/A
+******************************************************************************/
 
 void ISRinputCompletionInterrupt()
 {
@@ -1627,35 +1662,35 @@ void ISRinputCompletionInterrupt()
 	scanf("%d", ProcessID);
 
 	// Search WQ to find the PCB having the given PID
-	while (currentPCBptr != EndOfList){
-		if (Mem[currentPCBptr] == ProcessID){
-		// Remove PCB from the WQ
+	while (currentPCBptr != EndOfList) {
+		if (mem[currentPCBptr] == ProcessID) {
+			// Remove PCB from the WQ
 
-		// Read one character from standard input device keyboard
-			// (system call?)
+			// Read one character from standard input device keyboard
+				// (system call?)
 
-		
-		// Store the character in the GPR in the PCB, type cast char->long
 
-		// Set the process state to Ready in the PCB
+			// Store the character in the GPR in the PCB, type cast char->long
 
-		// Insert PCB into RQ
+			// Set the process state to Ready in the PCB
 
-		break;
+			// Insert PCB into RQ
+
+			break;
 		}
 	}
 
 	// If no match is found in WQ, then search RQ
 	currentPCBptr = RQ;
-	while (currentPCBptr != EndOfList){
-		if (Mem[currentPCBptr] == ProcessID) {
-		// Read one character from standard input device keyboard
+	while (currentPCBptr != EndOfList) {
+		if (mem[currentPCBptr] == ProcessID) {
+			// Read one character from standard input device keyboard
 
-		// Store the character in the GPR in the PCB	
+			// Store the character in the GPR in the PCB	      
 
-		break;
+			break;
 		}
-		
+
 	}
 
 	// If no matching PCB is found in WQ, and RQ, print invalid PID as an error message.
@@ -1663,18 +1698,18 @@ void ISRinputCompletionInterrupt()
 }
 
 /*******************************************************************************
- * Function: Output Completion Interrupt
- *
- * Description: Read PID of the process completing the io_putc operation and 
- * 				display one character on the monitor (output device) from the GPR
- * 				in the PCB of the process
- * 
- * Input Parameters: N/A
- * 
- * Output Parameters: N/A
- * 
- * Function Return Value: N/A
- ******************************************************************************/
+* Function: Output Completion Interrupt
+*
+* Description: Read PID of the process completing the io_putc operation and
+* 				display one character on the monitor (output device) from the GPR
+* 				in the PCB of the process
+*
+* Input Parameters: N/A
+*
+* Output Parameters: N/A
+*
+* Function Return Value: N/A
+******************************************************************************/
 
 void ISRoutputCompletionInterrupt()
 {
@@ -1687,35 +1722,35 @@ void ISRoutputCompletionInterrupt()
 	scanf("%d", ProcessID);
 
 	// Search WQ to find the PCB having the given PID
-	while (currentPCBptr != EndOfList){
-		if (Mem[currentPCBptr] == ProcessID){
-		// Remove PCB from the WQ
+	while (currentPCBptr != EndOfList) {
+		if (mem[currentPCBptr] == ProcessID) {
+			// Remove PCB from the WQ
 
-		// Read one character from standard input device keyboard
-			// (system call?)
-		
-		
-		// Store the character in the GPR in the PCB, type cast char->long
+			// Read one character from standard input device keyboard
+				// (system call?)
 
-		// Set the process state to Ready in the PCB
 
-		// Insert PCB into RQ
+			// Store the character in the GPR in the PCB, type cast char->long
 
-		break;
+			// Set the process state to Ready in the PCB
+
+			// Insert PCB into RQ
+
+			break;
 		}
 	}
 
 	// If no match is found in WQ, then search RQ
 	currentPCBptr = RQ;
-	while (currentPCBptr != EndOfList){
-		if (Mem[currentPCBptr] == ProcessID) {
-		// Read one character from standard input device keyboard
+	while (currentPCBptr != EndOfList) {
+		if (mem[currentPCBptr] == ProcessID) {
+			// Read one character from standard input device keyboard
 
-		// Store the character in the GPR in the PCB	
+			// Store the character in the GPR in the PCB	      
 
-		break;
+			break;
 		}
-		
+
 	}
 
 	// If no matching PCB is found in WQ, and RQ, print invalid PID as an error message.
@@ -1723,18 +1758,18 @@ void ISRoutputCompletionInterrupt()
 }
 
 /*******************************************************************************
- * Function: IOGetC
- *
- * Description: Obtain one character from the user. Forces rescheduling
- * 
- * Input Parameters: R1 = the character read
- * 
- * Output Parameters
- * 		1. R0 = return code, always OK.
- * 
- * Function Return Value
- * //
- ******************************************************************************/
+* Function: IOGetC
+*
+* Description: Obtain one character from the user. Forces rescheduling
+*
+* Input Parameters: R1 = the character read
+*
+* Output Parameters
+* 		1. R0 = return code, always OK.
+*
+* Function Return Value
+* //
+******************************************************************************/
 
 long IOGetCSystemCall(char R1, int *R0)
 {
@@ -1744,18 +1779,18 @@ long IOGetCSystemCall(char R1, int *R0)
 }
 
 /*******************************************************************************
- * Function: IOPutC
- *
- * Description: Specifies a character to be printed on the user terminal.
- * 				Forces rescheduling
- * Input Parameters: R1 = character to be displayed
- * 
- * Output Parameters
- * 		1. R0 = return code, always OK
- *
- * Function Return Value
- * //
- ******************************************************************************/
+* Function: IOPutC
+*
+* Description: Specifies a character to be printed on the user terminal.
+* 				Forces rescheduling
+* Input Parameters: R1 = character to be displayed
+*
+* Output Parameters
+* 		1. R0 = return code, always OK
+*
+* Function Return Value
+* //
+******************************************************************************/
 
 long IOPutCSystemCall(char R1, int *R0)
 {

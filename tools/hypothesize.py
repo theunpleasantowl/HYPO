@@ -1,6 +1,8 @@
 #!/usr/bin/python
 import csv
+import os
 import re
+import sys
 
 #   __                  __  __           _
 #  / /  __ _____  ___  / /_/ /  ___ ___ (_)__ ___ _______ ____
@@ -27,11 +29,17 @@ labels = {}                                     # Label Index Locations
 asmlist = []                                    # In-Memory copy of CSV file
 
 # === CSV LOADING ===
+if len(sys.argv) == 1:
+    print ("Program Usage:")
+    print ("./hypothesize.py $inputfile\n")
+    filename = input("Enter Filename: ")
+else:
+    filename = sys.argv[1]
 csv.register_dialect('myDialect',
 delimiter = ',',
 quoting=csv.QUOTE_ALL,
 skipinitialspace=True)
-with open('asm.csv', 'r') as csv_file:
+with open(filename, 'r') as csv_file:
     reader = csv.reader(csv_file, dialect='myDialect')
     for row in reader:
         row[2] = row[2].split(",")              # Bifurcate Operand Column
@@ -127,7 +135,7 @@ for val in asmlist:
     print(val)
 
 # === WRITE ===
-filename = "machinecode.txt"
+filename = os.path.splitext(filename)[0] + ".txt"   // $filename.txt
 file = open(filename, "w")
 for key, val in codearray.items():
     line = ('%s %s\n' % (str(key), str(val)))

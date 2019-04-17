@@ -112,6 +112,7 @@ for column in asmlist:
     if column[0] != "":                 # If First Column not empty...
         labels[column[0]] = "???"       # add it to Labels dictionary
 
+print("LABELS:")
 for key,val in labels.items():          # DEBUG: List Labels
     print(key,val)
 
@@ -128,9 +129,11 @@ for key,val in labels.items():
 # [DEBUG STATEMENTS]
 print("---------------")
 
+print("MACHINE CODE:")
 for key, val in codearray.items():
     print(key,val)
 
+print("LABELS (FINAL)):")
 for val in asmlist:
     print(val)
 

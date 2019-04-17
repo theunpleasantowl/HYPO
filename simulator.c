@@ -50,7 +50,7 @@ long OSFreeList, UserFreeList, RQ, WQ;
 
 long ProcessID = 1;
 
-//PCB components
+/*** PCB components ***/
 const int Ready = 1;
 const int Running = 2;
 const int Waiting = 3;
@@ -85,7 +85,7 @@ void DumpMemory(char* String, long StartAddress, long size);
 long CreateProcess(char *filename, long priority);
 void TerminateProcess(long PCBptr);
 long AllocateOSMemory(long RequestedSize);
-long FreeOSMemory(long ptr, long size);
+long FreeOSMemory(long *ptr, long size);
 long AllocateUserMemory(long size);
 long FreeUserMemory(long ptr, long size);
 long MemAllocSystemCall();
@@ -93,8 +93,8 @@ long MemFreeSystemCall();
 void InitializePCB();
 void PrintPCB(long PCBptr);
 long PrintQueue(long Qptr);
-long InsertIntoRQ(long PCBptr);
-long InsertIntoWQ(long PCBptr);
+long InsertIntoRQ(long *PCBptr);
+long InsertIntoWQ(long *PCBptr);
 long SelectProcessFromRQ();
 void SaveContext(long PCBptr);
 void Dispatcher(long PCBptr);
@@ -123,11 +123,11 @@ long io_putc(char R1, int *R0);
 void PrintPCB(long PCBptr)
 {
 	/*
-	Print the values of the following fields from PCB with a text before the value like below:
-		PCB address = 6000, Next PCB Ptr = 5000, PID = 2, State = 2, PC = 200, SP = 4000,
-		Priority = 127, Stack info: start address = 3990, size = 10
-		GPRs = print 8 values of GPR 0 to GPR 7
-	*/
+	   Print the values of the following fields from PCB with a text before the value like below:
+	   PCB address = 6000, Next PCB Ptr = 5000, PID = 2, State = 2, PC = 200, SP = 4000,
+	   Priority = 127, Stack info: start address = 3990, size = 10
+	   GPRs = print 8 values of GPR 0 to GPR 7
+	   */
 }  // end of PrintPCB() function
 
 /*******************************************************************************
@@ -298,7 +298,7 @@ long CPU()
 {
 	/* Local Variables */
 	long opcode, op1mode, op1gpr, op2mode, op2gpr, op1addr, op1val,
-		op2addr, op2val, remainder, result, SystemCallID;
+	     op2addr, op2val, remainder, result, SystemCallID;
 	long status = OK;
 	long TimeLeft = TIMESLICE;
 
@@ -314,7 +314,7 @@ long CPU()
 		}
 		else {
 			printf("ERROR: Invalid Runtime Address. Line: %d "
-				"Address: %d\n", pc, mem[pc]);          // Error
+					"Address: %d\n", pc, mem[pc]);          // Error
 			return(ErrorInvalidAddress);
 		}
 
@@ -344,7 +344,7 @@ long CPU()
 
 		// Decode Validation
 		if (((0 <= op1mode <= 6) && (0 <= op2mode <= 6) &&
-			(0 <= op1gpr <= GPR_NUMBER) && (0 <= op2gpr <= GPR_NUMBER)) == 0) {
+					(0 <= op1gpr <= GPR_NUMBER) && (0 <= op2gpr <= GPR_NUMBER)) == 0) {
 			printf("ERROR: Invalid Instruction on line %d\n", mar); // Error
 			return ErrorInvalidInstruction;
 		}
@@ -353,270 +353,270 @@ long CPU()
 		// Execute Cycle
 
 		switch (opcode) {
-		case 0:                 //halt
-			printf("Machine is Halting\n");
-			return SIMULATOR_STATUS_HALTED;
-			clock += 12;
-			TimeLeft -= 12;
-			break;
-		case 1:                 //add
-			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (status != OK) {                //Return ERROR value to Main
-				return status;
-			}
-
-			status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
-			if (status != OK) {
-				return status;
-			}
-
-			//Add Operand Values
-			result = op1val + op2val;
-
-			// If op1mode is Register Mode
-			if (op1mode == 1) {
-				gpr[op1gpr] = result;
-			}
-			else if (op1mode == 6) {
-				printf("ERROR: Line %d Destination cannot be immediate\n", pc);
-				return ErrorImmediateMode;
-			}
-			else {        //Store result in op1address
-				mem[op1addr] = result;
-			}
-			clock += 3;
-			TimeLeft -= 3;
-			break;
-		case 2:                 //subtract
-			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (status != OK) {                //Return ERROR value to Main
-				return status;
-			}
-
-			status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
-			if (status != OK) {
-				return status;
-			}
-
-			//Subtract Operand Values
-			result = op1val - op2val;
-
-			// If op1mode is Register Mode
-			if (op1mode == 1) {
-				gpr[op1gpr] = result;
-			}
-			else if (op1mode == 6) {
-				printf("ERROR: Line %d Destination cannot be immediate\n", pc);
-				return ErrorImmediateMode;
-			}
-			else {        //Store result in op1address
-				mem[op1addr] = result;
-			}
-			clock += 3;
-			TimeLeft -= 3;
-			break;
-		case 3:                 //multiply
-			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (status != OK) {                //Return ERROR value to Main
-				return status;
-			}
-
-			status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
-			if (status != OK) {
-				return status;
-			}
-
-			//Multiply Operand Values
-			result = op1val * op2val;
-
-			// If op1mode is Register Mode
-			if (op1mode == 1) {
-				gpr[op1gpr] = result;
-			}
-			else if (op1mode == 6) {
-				printf("ERROR: Line %d Destination cannot be immediate\n", pc);
-				return ErrorImmediateMode;
-			}
-			else {        //Store result in op1address
-				mem[op1addr] = result;
-			}
-			clock += 6;
-			TimeLeft -= 6;
-			break;
-		case 4:                 //divide
-			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (status != OK) {                //Return ERROR value to Main
-				return status;
-			}
-
-			status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
-			if (status != OK) {
-				return status;
-			}
-
-			//Divide Operand Values
-			if (op2val != 0)		// Division by Zero Check
-				result = op1val / op2val;
-			else {
-				printf("ERROR: Line %d Division by Zero\n", pc);
-				return ErrorRuntime;
-			}
-
-
-			// If op1mode is Register Mode
-			if (op1mode == 1) {
-				gpr[op1gpr] = result;
-			}
-			else if (op1mode == 6) {
-				printf("ERROR: Line %d Destination cannot be immediate\n", pc);
-				return ErrorImmediateMode;
-			}
-			else {        //Store result in op1address
-				mem[op1addr] = result;
-			}
-			clock += 6;
-			TimeLeft -= 6;
-			break;
-		case 5:                 //move (op1 <- op2)
-			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (status != OK) {                //Return ERROR value to Main
-				return status;
-			}
-
-			status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
-			if (status != OK) {
-				return status;
-			}
-
-			// If op1mode is Register Mode
-			if (op1mode == 1) {
-				gpr[op1gpr] = op2val;
-			}
-			else if (op1mode == 6) {
-				printf("ERROR: Line %d Destination cannot be immediate\n", pc);
-				return ErrorImmediateMode;
-			}
-			else {        //Store result in op1address
-				mem[op1addr] = op2val;
-			}
-			clock += 2;
-			TimeLeft -= 2;
-			break;
-		case 6:                 //branch
-			if (0 <= pc <= MAX_USER_MEMORY)
-				pc = mem[pc];
-			else {
-				printf("ERROR: Invalid Branch Address at Runtime\n");
-				return ErrorRuntime;
-			}
-			clock += 2;
-			TimeLeft -= 2;
-			break;
-		case 7:                 //branch on minus
-			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (status != OK) {                //Return ERROR value to Main
-				return status;
-			}
-
-			if (op1val < 0) {
-				if (0 <= pc <= MAX_USER_MEMORY) {
-					pc = mem[pc];
+			case 0:                 //halt
+				printf("Machine is Halting\n");
+				return SIMULATOR_STATUS_HALTED;
+				clock += 12;
+				TimeLeft -= 12;
+				break;
+			case 1:                 //add
+				status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+				if (status != OK) {                //Return ERROR value to Main
+					return status;
 				}
+
+				status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
+				if (status != OK) {
+					return status;
+				}
+
+				//Add Operand Values
+				result = op1val + op2val;
+
+				// If op1mode is Register Mode
+				if (op1mode == 1) {
+					gpr[op1gpr] = result;
+				}
+				else if (op1mode == 6) {
+					printf("ERROR: Line %d Destination cannot be immediate\n", pc);
+					return ErrorImmediateMode;
+				}
+				else {        //Store result in op1address
+					mem[op1addr] = result;
+				}
+				clock += 3;
+				TimeLeft -= 3;
+				break;
+			case 2:                 //subtract
+				status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+				if (status != OK) {                //Return ERROR value to Main
+					return status;
+				}
+
+				status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
+				if (status != OK) {
+					return status;
+				}
+
+				//Subtract Operand Values
+				result = op1val - op2val;
+
+				// If op1mode is Register Mode
+				if (op1mode == 1) {
+					gpr[op1gpr] = result;
+				}
+				else if (op1mode == 6) {
+					printf("ERROR: Line %d Destination cannot be immediate\n", pc);
+					return ErrorImmediateMode;
+				}
+				else {        //Store result in op1address
+					mem[op1addr] = result;
+				}
+				clock += 3;
+				TimeLeft -= 3;
+				break;
+			case 3:                 //multiply
+				status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+				if (status != OK) {                //Return ERROR value to Main
+					return status;
+				}
+
+				status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
+				if (status != OK) {
+					return status;
+				}
+
+				//Multiply Operand Values
+				result = op1val * op2val;
+
+				// If op1mode is Register Mode
+				if (op1mode == 1) {
+					gpr[op1gpr] = result;
+				}
+				else if (op1mode == 6) {
+					printf("ERROR: Line %d Destination cannot be immediate\n", pc);
+					return ErrorImmediateMode;
+				}
+				else {        //Store result in op1address
+					mem[op1addr] = result;
+				}
+				clock += 6;
+				TimeLeft -= 6;
+				break;
+			case 4:                 //divide
+				status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+				if (status != OK) {                //Return ERROR value to Main
+					return status;
+				}
+
+				status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
+				if (status != OK) {
+					return status;
+				}
+
+				//Divide Operand Values
+				if (op2val != 0)		// Division by Zero Check
+					result = op1val / op2val;
+				else {
+					printf("ERROR: Line %d Division by Zero\n", pc);
+					return ErrorRuntime;
+				}
+
+
+				// If op1mode is Register Mode
+				if (op1mode == 1) {
+					gpr[op1gpr] = result;
+				}
+				else if (op1mode == 6) {
+					printf("ERROR: Line %d Destination cannot be immediate\n", pc);
+					return ErrorImmediateMode;
+				}
+				else {        //Store result in op1address
+					mem[op1addr] = result;
+				}
+				clock += 6;
+				TimeLeft -= 6;
+				break;
+			case 5:                 //move (op1 <- op2)
+				status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+				if (status != OK) {                //Return ERROR value to Main
+					return status;
+				}
+
+				status = FetchOperand(op2mode, op2gpr, &op2addr, &op2val);
+				if (status != OK) {
+					return status;
+				}
+
+				// If op1mode is Register Mode
+				if (op1mode == 1) {
+					gpr[op1gpr] = op2val;
+				}
+				else if (op1mode == 6) {
+					printf("ERROR: Line %d Destination cannot be immediate\n", pc);
+					return ErrorImmediateMode;
+				}
+				else {        //Store result in op1address
+					mem[op1addr] = op2val;
+				}
+				clock += 2;
+				TimeLeft -= 2;
+				break;
+			case 6:                 //branch
+				if (0 <= pc <= MAX_USER_MEMORY)
+					pc = mem[pc];
 				else {
 					printf("ERROR: Invalid Branch Address at Runtime\n");
 					return ErrorRuntime;
 				}
-			}
-			else {
-				pc++;	//Skip Branch and advance
-			}
-			clock += 4;
-			TimeLeft -= 4;
-			break;
-		case 8:                 //branch on plus
-			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (status != OK) {                //Return ERROR value to Main
-				return status;
-			}
+				clock += 2;
+				TimeLeft -= 2;
+				break;
+			case 7:                 //branch on minus
+				status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+				if (status != OK) {                //Return ERROR value to Main
+					return status;
+				}
 
-			if (op1val > 0) {
-				if (0 <= pc <= MAX_USER_MEMORY) {
-					pc = mem[pc];
+				if (op1val < 0) {
+					if (0 <= pc <= MAX_USER_MEMORY) {
+						pc = mem[pc];
+					}
+					else {
+						printf("ERROR: Invalid Branch Address at Runtime\n");
+						return ErrorRuntime;
+					}
 				}
 				else {
-					printf("ERROR: Invalid Branch Address at Runtime\n");
-					return ErrorRuntime;
+					pc++;	//Skip Branch and advance
 				}
-			}
-			else {
-				pc++;	//Skip Branch and advance
-			}
-			clock += 4;
-			TimeLeft -= 4;
-			break;
-		case 9:                 //branch on zero
-			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (status != OK) {                //Return ERROR value to Main
-				return status;
-			}
+				clock += 4;
+				TimeLeft -= 4;
+				break;
+			case 8:                 //branch on plus
+				status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+				if (status != OK) {                //Return ERROR value to Main
+					return status;
+				}
 
-			if (op1val == 0) {
-				if (0 <= pc <= MAX_USER_MEMORY) {
-					pc = mem[pc];
+				if (op1val > 0) {
+					if (0 <= pc <= MAX_USER_MEMORY) {
+						pc = mem[pc];
+					}
+					else {
+						printf("ERROR: Invalid Branch Address at Runtime\n");
+						return ErrorRuntime;
+					}
 				}
 				else {
-					printf("ERROR: Invalid Branch Address at Runtime\n");
+					pc++;	//Skip Branch and advance
+				}
+				clock += 4;
+				TimeLeft -= 4;
+				break;
+			case 9:                 //branch on zero
+				status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+				if (status != OK) {                //Return ERROR value to Main
+					return status;
+				}
+
+				if (op1val == 0) {
+					if (0 <= pc <= MAX_USER_MEMORY) {
+						pc = mem[pc];
+					}
+					else {
+						printf("ERROR: Invalid Branch Address at Runtime\n");
+						return ErrorRuntime;
+					}
+				}
+				else {
+					pc++;	//Skip Branch and advance
+				}
+				clock += 4;
+				TimeLeft -= 4;
+				break;
+			case 10:                //push
+				status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+				if (status != OK) {                //Return ERROR value to Main
+					return status;
+				}
+
+				if ((MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) != 0) {
+					printf("ERROR: Stack Address Overflow\n");
+					return ErrorStackOverflow;
+				}
+
+				// Push to Stack
+				sp++;
+				mem[sp] = op1val;
+				clock += 2;
+				TimeLeft -= 2;
+				break;
+			case 11:                //pop
+				if ((MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) != 0) {
+					printf("ERROR: Stack Address Underflow\n");
+					return ErrorStackUnderflow;
+				}
+
+				// Pop Stack
+				op1val = mem[sp];
+				sp--;
+				clock += 2;
+				TimeLeft -= 2;
+				break;
+			case 12:                //system call
+				if (MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) {
+					printf("ERROR: Systemcall to Invalid Address\n");
 					return ErrorRuntime;
 				}
-			}
-			else {
-				pc++;	//Skip Branch and advance
-			}
-			clock += 4;
-			TimeLeft -= 4;
-			break;
-		case 10:                //push
-			status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
-			if (status != OK) {                //Return ERROR value to Main
-				return status;
-			}
-
-			if ((MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) != 0) {
-				printf("ERROR: Stack Address Overflow\n");
-				return ErrorStackOverflow;
-			}
-
-			// Push to Stack
-			sp++;
-			mem[sp] = op1val;
-			clock += 2;
-			TimeLeft -= 2;
-			break;
-		case 11:                //pop
-			if ((MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) != 0) {
-				printf("ERROR: Stack Address Underflow\n");
-				return ErrorStackUnderflow;
-			}
-
-			// Pop Stack
-			op1val = mem[sp];
-			sp--;
-			clock += 2;
-			TimeLeft -= 2;
-			break;
-		case 12:                //system call
-			if (MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) {
-				printf("ERROR: Systemcall to Invalid Address\n");
-				return ErrorRuntime;
-			}
-			long SystemCallID = mem[pc++];
-			status = SystemCall(SystemCallID);
-			clock += 12;
-			TimeLeft -= 12;
-			break;
-		default:                //Invalid Opcode
-			printf("ERROR: Invalid opcode on line %d\n", mar);         // Error
-			return ErrorInvalidOpcode;
+				long SystemCallID = mem[pc++];
+				status = SystemCall(SystemCallID);
+				clock += 12;
+				TimeLeft -= 12;
+				break;
+			default:                //Invalid Opcode
+				printf("ERROR: Invalid opcode on line %d\n", mar);         // Error
+				return ErrorInvalidOpcode;
 		}
 	}
 }
@@ -640,7 +640,7 @@ long CPU()
  *      ErrorInvalidPCValue		-Direct Mode PC out of bounds
  ******************************************************************************/
 
- //TODO: Implement Function
+//TODO: Implement Function
 long SystemCall(long SystemCallID)
 {
 	psr = MACHINE_MODE_OS;		// Set system mode to OS mode
@@ -649,44 +649,44 @@ long SystemCall(long SystemCallID)
 	long status = OK;
 
 	switch (SystemCallID) {
-	case 1:                 //process_create
-		//status = CreateProcess(filename, priority);
-		break;
-	case 2:                 //process_delete
+		case 1:                 //process_create
+			//status = CreateProcess(filename, priority);
+			break;
+		case 2:                 //process_delete
 
-		break;
-	case 3:                 //process_inquiry
+			break;
+		case 3:                 //process_inquiry
 
-		break;
-	case 4:                 //mem_alloc
-		//Dynamic memory allocation: Allocate user free memory system call
-		MemAllocSystemCall();
-		break;
-	case 5:                 //mem_free
-		// Free dynamically allocated user memory system call
-		MemFreeSystemCall();
-		break;
-	case 6:                 //msg_send
+			break;
+		case 4:                 //mem_alloc
+			//Dynamic memory allocation: Allocate user free memory system call
+			MemAllocSystemCall();
+			break;
+		case 5:                 //mem_free
+			// Free dynamically allocated user memory system call
+			MemFreeSystemCall();
+			break;
+		case 6:                 //msg_send
 
-		break;
-	case 7:                 //msg_recieve
+			break;
+		case 7:                 //msg_recieve
 
-		break;
-	case 8:                 //io_getc
+			break;
+		case 8:                 //io_getc
 
-		break;
-	case 9:                 //io_putc
+			break;
+		case 9:                 //io_putc
 
-		break;
-	case 10:                //time_get
+			break;
+		case 10:                //time_get
 
-		break;
-	case 11:                //time_set
+			break;
+		case 11:                //time_set
 
-		break;
-	default:
+			break;
+		default:
 
-		break;
+			break;
 	}
 	psr = MACHINE_MODE_USER;		// Restore to User Mode
 	return status;
@@ -716,82 +716,82 @@ long SystemCall(long SystemCallID)
  ******************************************************************************/
 
 long FetchOperand(
-	long OpMode,
-	long OpReg,
-	long *OpAddress,
-	long *OpValue)
+		long OpMode,
+		long OpReg,
+		long *OpAddress,
+		long *OpValue)
 {
 	//Fetch value based on value based on the operand mode
 	switch (OpMode) {
-	case 1:         //Register Mode
-		*OpAddress = -1;         //Set to Invalid Address
-		*OpValue = gpr[OpReg];
-		break;
-	case 2:         //Register deferred mode
-		*OpAddress = gpr[OpReg];         //Grab OPAddress from Register
+		case 1:         //Register Mode
+			*OpAddress = -1;         //Set to Invalid Address
+			*OpValue = gpr[OpReg];
+			break;
+		case 2:         //Register deferred mode
+			*OpAddress = gpr[OpReg];         //Grab OPAddress from Register
 
-		if (0 <= OpAddress <= MAX_USER_MEMORY) {
-			*OpValue = mem[*OpAddress];         //Grab OpValue in Mem
-		}
-		else {
-			printf("ERROR: Invalid Fetch Operand Address\n");
-			return ErrorInvalidAddress;
-		}
+			if (0 <= OpAddress <= MAX_USER_MEMORY) {
+				*OpValue = mem[*OpAddress];         //Grab OpValue in Mem
+			}
+			else {
+				printf("ERROR: Invalid Fetch Operand Address\n");
+				return ErrorInvalidAddress;
+			}
 
-		break;
-	case 3:         //Autoincrement mode -> ADDR in GPR, OPVAL in MEM
-		*OpAddress = gpr[OpReg];                //Op Address is in Register
+			break;
+		case 3:         //Autoincrement mode -> ADDR in GPR, OPVAL in MEM
+			*OpAddress = gpr[OpReg];                //Op Address is in Register
 
-		if (0 <= OpAddress <= MAX_USER_MEMORY) {
-			*OpValue = mem[*OpAddress];         //Grab OpValue in Mem
-		}
-		else {
-			printf("ERROR: Invalid Fetch Operand Address\n");
-			return ErrorInvalidAddress;
-		}
-		gpr[OpReg]++;
+			if (0 <= OpAddress <= MAX_USER_MEMORY) {
+				*OpValue = mem[*OpAddress];         //Grab OpValue in Mem
+			}
+			else {
+				printf("ERROR: Invalid Fetch Operand Address\n");
+				return ErrorInvalidAddress;
+			}
+			gpr[OpReg]++;
 
-		break;
-	case 4:         //Autodecrement mode
-		--gpr[OpReg];
-		*OpAddress = gpr[OpReg];
-		if (0 <= OpAddress <= MAX_USER_MEMORY) {
-			*OpValue = mem[*OpAddress];         //Grab OpValue in Mem
-		}
-		else {
-			printf("ERROR: Invalid Fetch Operand Address\n");
-			return ErrorInvalidAddress;
-		}
+			break;
+		case 4:         //Autodecrement mode
+			--gpr[OpReg];
+			*OpAddress = gpr[OpReg];
+			if (0 <= OpAddress <= MAX_USER_MEMORY) {
+				*OpValue = mem[*OpAddress];         //Grab OpValue in Mem
+			}
+			else {
+				printf("ERROR: Invalid Fetch Operand Address\n");
+				return ErrorInvalidAddress;
+			}
 
-		break;
-	case 5:         //Direct mode -> OP Address is mem[pc]
+			break;
+		case 5:         //Direct mode -> OP Address is mem[pc]
 
-		if ((0 <= pc <= MAX_USER_MEMORY) == 0) {
-			printf("ERROR: Invalid PC Address at Runtime\n");
-			return ErrorRuntime;
-		}
-		*OpAddress = mem[pc++];
-		if (0 <= *OpAddress <= MAX_USER_MEMORY) {
-			*OpValue = mem[*OpAddress];
-		}
-		else {
-			printf("ERROR: Invalid Address\n");
-			return ErrorInvalidAddress;
-		}
+			if ((0 <= pc <= MAX_USER_MEMORY) == 0) {
+				printf("ERROR: Invalid PC Address at Runtime\n");
+				return ErrorRuntime;
+			}
+			*OpAddress = mem[pc++];
+			if (0 <= *OpAddress <= MAX_USER_MEMORY) {
+				*OpValue = mem[*OpAddress];
+			}
+			else {
+				printf("ERROR: Invalid Address\n");
+				return ErrorInvalidAddress;
+			}
 
-		break;
-	case 6:         //Immediate mode -> Opvalue in Instruction
-		if ((0 <= mem[pc] <= MAX_USER_MEMORY) == 0) {
-			printf("ERROR: Invalid PC Address at Runtime\n");
-			return ErrorRuntime;
-		}
-		*OpAddress = -1;                        //Set to Invalid Address
-		*OpValue = mem[pc++];
+			break;
+		case 6:         //Immediate mode -> Opvalue in Instruction
+			if ((0 <= mem[pc] <= MAX_USER_MEMORY) == 0) {
+				printf("ERROR: Invalid PC Address at Runtime\n");
+				return ErrorRuntime;
+			}
+			*OpAddress = -1;                        //Set to Invalid Address
+			*OpValue = mem[pc++];
 
-		break;
-	default:        //Invalid mode
-		printf("ERROR: Invalid mode at line %d\n", mbr);
-		return ErrorInvalidMode;
+			break;
+		default:        //Invalid mode
+			printf("ERROR: Invalid mode at line %d\n", mbr);
+			return ErrorInvalidMode;
 	}
 	return OK;
 }
@@ -816,9 +816,9 @@ long FetchOperand(
  ******************************************************************************/
 
 void DumpMemory(
-	char* String,
-	long StartAddress,
-	long size)
+		char* String,
+		long StartAddress,
+		long size)
 {
 	/* Print String Header */
 	printf("%s\n", String);
@@ -863,7 +863,7 @@ void DumpMemory(
 /*******************************************************************************
  * Function: CreateProcess
  *
- * Description: //TODO
+ * Description: [UNUSED]
  *
  * Input Parameters
  *      String (pointer)		Name of the file associated with the process
@@ -875,44 +875,44 @@ void DumpMemory(
  * Function Return Value
  *      None
  ******************************************************************************/
-long CreateProcess(char* filename, long priority)
-{
-
-	// Allocate space for Process Control Block
-	long *PCBptr = &EndOfList; //TODO: Wrong behavior,
-
-	// Initialize PCB: Set nextPCBlink to end of list, default priority, Ready state, and PID
-	InitializePCB(PCBptr); //TODO: FIX names once function implemented
-
-	// Load the program
-	if (AbsoluteLoader(filename) == OK)
-		pcb->pc = pc; 		// Store PC value in the PCB of the process
-	else
-		return ErrorFileOpen;
-
-	// Allocate stack space from user free list
-	pcb->ptr = StackSize; 		// Set ptr = Allocate User Memory of size StackSize;
-	if (ptr < 0)			// Check for error
-	{  				// User memory allocation failed
-		FreeOSMemory(PCBptr, SIZE);
-		return(ErrorInvalidMemorySize);  		// return error code
-	}
-
-	// Store stack information in the PCB . SP, ptr, and size
-	pcb->sp = ptr + SIZE;		// empty stack is high address, full is low address
-	pcb->StartAddress = ptr;
-	pcb->StackSize = SIZE;
-	pcb->priority = DEFAULT_PRIORITY;	// Set priority
-
-	DumpMemory("PCB Created", ptr, SIZE);				// Dump PCB stack
-
-	//TODO: print PCB
-
-	// Insert PCB into Ready Queue according to the scheduling algorithm
-	InsertIntoRQ(PCBptr);
-
-	return(OK);
-}
+//long CreateProcess(char* filename, long priority)
+//{
+//
+//	// Allocate space for Process Control Block
+//	long *PCBptr = &EndOfList; //TODO: Wrong behavior,
+//
+//	// Initialize PCB: Set nextPCBlink to end of list, default priority, Ready state, and PID
+//	InitializePCB(PCBptr); //TODO: FIX names once function implemented
+//
+//	// Load the program
+//	if (AbsoluteLoader(filename) == OK)
+//		pcb->pc = pc; 		// Store PC value in the PCB of the process
+//	else
+//		return ErrorFileOpen;
+//
+//	// Allocate stack space from user free list
+//	pcb->ptr = StackSize; 		// Set ptr = Allocate User Memory of size StackSize;
+//	if (ptr < 0)			// Check for error
+//	{  				// User memory allocation failed
+//		FreeOSMemory(PCBptr, SIZE);
+//		return(ErrorInvalidMemorySize);  		// return error code
+//	}
+//
+//	// Store stack information in the PCB . SP, ptr, and size
+//	pcb->sp = ptr + SIZE;		// empty stack is high address, full is low address
+//	pcb->StartAddress = ptr;
+//	pcb->StackSize = SIZE;
+//	pcb->priority = DEFAULT_PRIORITY;	// Set priority
+//
+//	DumpMemory("PCB Created", ptr, SIZE);				// Dump PCB stack
+//
+//	//TODO: print PCB
+//
+//	// Insert PCB into Ready Queue according to the scheduling algorithm
+//	InsertIntoRQ(PCBptr);
+//
+//	return(OK);
+//}
 /*******************************************************************************
  * Function: TerminateProcess
  *
@@ -1039,7 +1039,7 @@ long AllocateOSMemory(long RequestedSize)  // return value contains address or e
  * //TODO
  ******************************************************************************/
 
-long FreeOSMemory(long ptr, long size)
+long FreeOSMemory(long *ptr, long size)
 {
 	if (ptr < 7000 || ptr > MAX_OS_MEMORY)
 	{
@@ -1059,9 +1059,9 @@ long FreeOSMemory(long ptr, long size)
 		return(ErrorInvalidAddress);
 	}
 
-	mem[ptr] = OSFreeList;
-	mem[ptr + 1] = size;
-	OSFreeList = ptr;
+	mem[*ptr] = OSFreeList;
+	mem[*ptr + 1] = size;
+	OSFreeList = *ptr;
 }
 
 /*******************************************************************************
@@ -1301,7 +1301,7 @@ long MemFreeSystemCall()
 
 void InitializePCB(long PCBptr)
 {
-	//Set entire PCB area to 0 using PCBptr; 
+	//Set entire PCB area to 0 using PCBptr;
 	// Array initialization
 	for (int i = 0; i < MAX_USER_MEMORY; i++)
 	{
@@ -1313,7 +1313,7 @@ void InitializePCB(long PCBptr)
 	//Set state field in the PCB = ReadyState;
 	mem[PCBptr + PCB_State] = ReadyState;
 
-	//Set priority field in the PCB = Default Priority;  
+	//Set priority field in the PCB = Default Priority;
 	mem[PCBptr + PCB_Priority] = DEFAULT_PRIORITY;
 
 	//Set next PCB pointer field in the PCB = EndOfList
@@ -1432,8 +1432,8 @@ void Dispatcher(long PCBptr)
 {
 	//PCBptr is assumed to be correct
 
-	//copy CPU GPR register values from given PCB into the CPU registers 
-	//This is opposite of save CPU context 
+	//copy CPU GPR register values from given PCB into the CPU registers
+	//This is opposite of save CPU context
 
 	//Restore SP and PC from given PCB
 	//UserMode is 2, OSMode is 1
@@ -1457,7 +1457,7 @@ void Dispatcher(long PCBptr)
  * //TODO
  ******************************************************************************/
 
-long InsertIntoRQ(long PCBptr)
+long InsertIntoRQ(long *PCBptr)
 {
 	// Insert PCB according to Priority Round Robin algorithm
 	// Use priority in the PCB to find the correct place to insert
@@ -1465,19 +1465,19 @@ long InsertIntoRQ(long PCBptr)
 	long CurrentPtr = EndOfList;
 
 	//check for invalid PCB memory address
-	if ((PCBptr < 0) || (PCBptr > MAX_USER_MEMORY))
+	if ((PCBptr < 0) || (*PCBptr > MAX_USER_MEMORY))
 	{
 		printf("ERROR: Invalid Memory Address ");
 		return(ErrorInvalidAddress);
 	}
 
 	//TODO: replace StateIndex, ready, NextPointerIndex
-	mem[PCBptr + PCB_State] = Ready;   //set state to ready
-	mem[PCBptr + NextPtr] = EndOfList; //set next pointer to end of list
+	mem[*PCBptr + PCB_State] = Ready;   //set state to ready
+	mem[*PCBptr + NextPtr] = EndOfList; //set next pointer to end of list
 
 	if (RQ == EndOfList) //RQ is empty
 	{
-		RQ = PCBptr;
+		RQ = *PCBptr;
 		return(OK);
 	}
 
@@ -1486,18 +1486,18 @@ long InsertIntoRQ(long PCBptr)
 
 	while (CurrentPtr != EndOfList)
 	{
-		if (mem[PCBptr + PCB_Priority] > mem[CurrentPtr + PCB_Priority])
+		if (mem[*PCBptr + PCB_Priority] > mem[CurrentPtr + PCB_Priority])
 		{
 			if (PreviousPtr == EndOfList)
 			{
 				// Enter PCB in the front of the list as first entry
-				mem[PCBptr + NextPtr] = RQ;
-				RQ = PCBptr;
+				mem[*PCBptr + NextPtr] = RQ;
+				RQ = *PCBptr;
 				return(OK);
 			}
 			//enter PCB in the middle of the list
-			mem[PCBptr + NextPtr] = mem[PreviousPtr + NextPtr];
-			mem[PreviousPtr + NextPtr] = PCBptr;
+			mem[*PCBptr + NextPtr] = mem[PreviousPtr + NextPtr];
+			mem[PreviousPtr + NextPtr] = *PCBptr;
 			return(OK);
 		}
 		else //PCB to inserted has lower or equal priority to the Current PCB in RQ
@@ -1509,7 +1509,7 @@ long InsertIntoRQ(long PCBptr)
 	} // end of while loop
 
 	//insert PCB at the end of RQ
-	mem[PreviousPtr + NextPtr] = PCBptr;
+	mem[PreviousPtr + NextPtr] = *PCBptr;
 	return(OK);
 }
 
@@ -1529,21 +1529,21 @@ long InsertIntoRQ(long PCBptr)
  * //TODO
  ******************************************************************************/
 
-long InsertIntoWQ(long PCBptr)
+long InsertIntoWQ(long *PCBptr)
 {
 	//insert given PCB at the front of InsertIntoWQ
 
 	//check for invalid PCB memory Address
-	if ((PCBptr < 0) || (PCBptr > MAX_OS_MEMORY))
+	if ((PCBptr < 0) || (*PCBptr > MAX_OS_MEMORY))
 	{
 		printf("ERROR: Invalid PCB address");
 		return(ErrorInvalidAddress); //error code < 0
 	}
 
-	mem[PCBptr + PCB_State] = Waiting; //What
-	mem[PCBptr + NextPtr] = WQ;
+	mem[*PCBptr + PCB_State] = Waiting; //What
+	mem[*PCBptr + NextPtr] = WQ;
 
-	WQ = PCBptr;
+	WQ = *PCBptr;
 
 	return(OK);
 } //end of InsertIntoWQ() function
@@ -1564,44 +1564,42 @@ long InsertIntoWQ(long PCBptr)
 
 void CheckAndProcessInterrupt()
 {
-
 	int InterruptID;
 	// Prompt and read interrupt ID
-	printf("Possible interrupt IDs: \n0 - no interrupt
-		\n1 - run program
-		\n2 - shutdown system
-		\n3 - input operation completion(io_getc)
-		\n4 - output operation completion(io_putc)");
+	printf("Possible interrupt IDs: \n0 - no interrupt"
+			"\n1 - run program"
+			"\n2 - shutdown system"
+			"\n3 - input operation completion(io_getc)"
+			"\n4 - output operation completion(io_putc)");
 
-		printf("Input interrupt ID: ");
+	printf("Input interrupt ID: ");
 	scanf("%d", InterruptID);
 	printf("Interrupt read: %d", InterruptID);
 
 	// Process interrupt
-	switch (InterruptID);
-	{
-	case 0: // no interrupt
-		break;
+	switch (InterruptID){
+		case 0: // no interrupt
+			break;
 
-	case 1: // run program
-		ISRrunProgramInterrupt();
-		break;
+		case 1: // run program
+			ISRrunProgramInterrupt();
+			break;
 
-	case 2: // shutdown system
-		ISRshutdownSystem();
-		break;
+		case 2: // shutdown system
+			ISRshutdownSystem();	//TODO: Non-existent function
+			break;
 
-	case 3: // input operation completion (io_getc)
-		ISRinputCompletionInterrupt();
-		break;
+		case 3: // input operation completion (io_getc)
+			ISRinputCompletionInterrupt();
+			break;
 
-	case 4: // output operation completion (io_putc)
-		ISRoutputCompletionInterrupt();
-		break;
+		case 4: // output operation completion (io_putc)
+			ISRoutputCompletionInterrupt();
+			break;
 
-	default: // invalid interrupt ID
-		printf("Invalid interrupt ID");
-		break;
+		default: // invalid interrupt ID
+			printf("Invalid interrupt ID");
+			break;
 	}
 
 	return;
@@ -1609,18 +1607,18 @@ void CheckAndProcessInterrupt()
 
 
 /*******************************************************************************
-* Function: ISRrunProgramInterrupt
-*
-* Description: Read filename and create process.
-*
-* Input Parameters: N/A
-*
-* Output Parameters
-* 		1. N/A
-*
-* Function Return Value
-* //
-******************************************************************************/
+ * Function: ISRrunProgramInterrupt
+ *
+ * Description: Read filename and create process.
+ *
+ * Input Parameters: N/A
+ *
+ * Output Parameters
+ * 		1. N/A
+ *
+ * Function Return Value
+ * //
+ ******************************************************************************/
 
 void ISRrunProgramInterrupt()
 {
@@ -1637,18 +1635,18 @@ void ISRrunProgramInterrupt()
 }
 
 /*******************************************************************************
-* Function: Input Completion Interrupt
-*
-* Description: Read PID of the process completing the io_getc operation and
-* 				read one character from the keyboard (input device). Store the
-* 				character in the GPR in the PCB of the process.
-*
-* Input Parameters: N/A
-*
-* Output Parameters: N/A
-*
-* Function Return Value: N/A
-******************************************************************************/
+ * Function: Input Completion Interrupt
+ *
+ * Description: Read PID of the process completing the io_getc operation and
+ * 				read one character from the keyboard (input device). Store the
+ * 				character in the GPR in the PCB of the process.
+ *
+ * Input Parameters: N/A
+ *
+ * Output Parameters: N/A
+ *
+ * Function Return Value: N/A
+ ******************************************************************************/
 
 void ISRinputCompletionInterrupt()
 {
@@ -1667,7 +1665,7 @@ void ISRinputCompletionInterrupt()
 			// Remove PCB from the WQ
 
 			// Read one character from standard input device keyboard
-				// (system call?)
+			// (system call?)
 
 
 			// Store the character in the GPR in the PCB, type cast char->long
@@ -1686,7 +1684,7 @@ void ISRinputCompletionInterrupt()
 		if (mem[currentPCBptr] == ProcessID) {
 			// Read one character from standard input device keyboard
 
-			// Store the character in the GPR in the PCB	      
+			// Store the character in the GPR in the PCB
 
 			break;
 		}
@@ -1698,18 +1696,18 @@ void ISRinputCompletionInterrupt()
 }
 
 /*******************************************************************************
-* Function: Output Completion Interrupt
-*
-* Description: Read PID of the process completing the io_putc operation and
-* 				display one character on the monitor (output device) from the GPR
-* 				in the PCB of the process
-*
-* Input Parameters: N/A
-*
-* Output Parameters: N/A
-*
-* Function Return Value: N/A
-******************************************************************************/
+ * Function: Output Completion Interrupt
+ *
+ * Description: Read PID of the process completing the io_putc operation and
+ * 				display one character on the monitor (output device) from the GPR
+ * 				in the PCB of the process
+ *
+ * Input Parameters: N/A
+ *
+ * Output Parameters: N/A
+ *
+ * Function Return Value: N/A
+ ******************************************************************************/
 
 void ISRoutputCompletionInterrupt()
 {
@@ -1727,7 +1725,7 @@ void ISRoutputCompletionInterrupt()
 			// Remove PCB from the WQ
 
 			// Read one character from standard input device keyboard
-				// (system call?)
+			// (system call?)
 
 
 			// Store the character in the GPR in the PCB, type cast char->long
@@ -1746,7 +1744,7 @@ void ISRoutputCompletionInterrupt()
 		if (mem[currentPCBptr] == ProcessID) {
 			// Read one character from standard input device keyboard
 
-			// Store the character in the GPR in the PCB	      
+			// Store the character in the GPR in the PCB
 
 			break;
 		}
@@ -1758,44 +1756,44 @@ void ISRoutputCompletionInterrupt()
 }
 
 /*******************************************************************************
-* Function: IOGetC
-*
-* Description: Obtain one character from the user. Forces rescheduling
-*
-* Input Parameters: R1 = the character read
-*
-* Output Parameters
-* 		1. R0 = return code, always OK.
-*
-* Function Return Value
-* //
-******************************************************************************/
+ * Function: IOGetC
+ *
+ * Description: Obtain one character from the user. Forces rescheduling
+ *
+ * Input Parameters: R1 = the character read
+ *
+ * Output Parameters
+ * 		1. R0 = return code, always OK.
+ *
+ * Function Return Value
+ * //
+ ******************************************************************************/
 
 long IOGetCSystemCall(char R1, int *R0)
 {
 	R1 = getchar();
-	R0 = OK;
+	*R0 = OK;
 	return R1;
 }
 
 /*******************************************************************************
-* Function: IOPutC
-*
-* Description: Specifies a character to be printed on the user terminal.
-* 				Forces rescheduling
-* Input Parameters: R1 = character to be displayed
-*
-* Output Parameters
-* 		1. R0 = return code, always OK
-*
-* Function Return Value
-* //
-******************************************************************************/
+ * Function: IOPutC
+ *
+ * Description: Specifies a character to be printed on the user terminal.
+ * 				Forces rescheduling
+ * Input Parameters: R1 = character to be displayed
+ *
+ * Output Parameters
+ * 		1. R0 = return code, always OK
+ *
+ * Function Return Value
+ * //
+ ******************************************************************************/
 
 long IOPutCSystemCall(char R1, int *R0)
 {
 	//printf("%d\n", R1);
 	putchar(R1);
-	R0 = OK;
-	return R0;
+	*R0 = OK;
+	return *R0;
 }

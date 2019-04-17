@@ -135,7 +135,7 @@ for val in asmlist:
     print(val)
 
 # === WRITE ===
-filename = os.path.splitext(filename)[0] + ".txt"   // $filename.txt
+filename = os.path.splitext(filename)[0] + ".txt"   # $filename.txt
 file = open(filename, "w")
 for key, val in codearray.items():
     line = ('%s %s\n' % (str(key), str(val)))

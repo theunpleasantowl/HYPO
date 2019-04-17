@@ -875,44 +875,44 @@ void DumpMemory(
  * Function Return Value
  *      None
  ******************************************************************************/
-//long CreateProcess(char* filename, long priority)
-//{
-//
-//	// Allocate space for Process Control Block
-//	long *PCBptr = &EndOfList; //TODO: Wrong behavior,
-//
-//	// Initialize PCB: Set nextPCBlink to end of list, default priority, Ready state, and PID
-//	InitializePCB(PCBptr); //TODO: FIX names once function implemented
-//
-//	// Load the program
-//	if (AbsoluteLoader(filename) == OK)
-//		pcb->pc = pc; 		// Store PC value in the PCB of the process
-//	else
-//		return ErrorFileOpen;
-//
-//	// Allocate stack space from user free list
-//	pcb->ptr = StackSize; 		// Set ptr = Allocate User Memory of size StackSize;
-//	if (ptr < 0)			// Check for error
-//	{  				// User memory allocation failed
-//		FreeOSMemory(PCBptr, SIZE);
-//		return(ErrorInvalidMemorySize);  		// return error code
-//	}
-//
-//	// Store stack information in the PCB . SP, ptr, and size
-//	pcb->sp = ptr + SIZE;		// empty stack is high address, full is low address
-//	pcb->StartAddress = ptr;
-//	pcb->StackSize = SIZE;
-//	pcb->priority = DEFAULT_PRIORITY;	// Set priority
-//
-//	DumpMemory("PCB Created", ptr, SIZE);				// Dump PCB stack
-//
-//	//TODO: print PCB
-//
-//	// Insert PCB into Ready Queue according to the scheduling algorithm
-//	InsertIntoRQ(PCBptr);
-//
-//	return(OK);
-//}
+long CreateProcess(char* filename, long priority)
+{
+	printf ("Create Process Function is not Implemented");
+	//// Allocate space for Process Control Block
+	//long *PCBptr = &EndOfList; //TODO: Wrong behavior,
+
+	//// Initialize PCB: Set nextPCBlink to end of list, default priority, Ready state, and PID
+	//InitializePCB(PCBptr); //TODO: FIX names once function implemented
+
+	//// Load the program
+	//if (AbsoluteLoader(filename) == OK)
+	//	pcb->pc = pc; 		// Store PC value in the PCB of the process
+	//else
+	//	return ErrorFileOpen;
+
+	//// Allocate stack space from user free list
+	//pcb->ptr = StackSize; 		// Set ptr = Allocate User Memory of size StackSize;
+	//if (ptr < 0)			// Check for error
+	//{  				// User memory allocation failed
+	//	FreeOSMemory(PCBptr, SIZE);
+	//	return(ErrorInvalidMemorySize);  		// return error code
+	//}
+
+	//// Store stack information in the PCB . SP, ptr, and size
+	//pcb->sp = ptr + SIZE;		// empty stack is high address, full is low address
+	//pcb->StartAddress = ptr;
+	//pcb->StackSize = SIZE;
+	//pcb->priority = DEFAULT_PRIORITY;	// Set priority
+
+	//DumpMemory("PCB Created", ptr, SIZE);				// Dump PCB stack
+
+	////TODO: print PCB
+
+	//// Insert PCB into Ready Queue according to the scheduling algorithm
+	//InsertIntoRQ(PCBptr);
+
+	return(OK);
+}
 /*******************************************************************************
  * Function: TerminateProcess
  *
@@ -1586,7 +1586,7 @@ void CheckAndProcessInterrupt()
 			break;
 
 		case 2: // shutdown system
-			ISRshutdownSystem();	//TODO: Non-existent function
+			//ISRshutdownSystem();	//TODO: Non-existent function
 			break;
 
 		case 3: // input operation completion (io_getc)

@@ -76,7 +76,7 @@ const int PCB_PSR = 21;
 
 /*** FUNCTION PROTOTYPES ***/
 void InitializeSystem();
-int main();
+int main(int argc, char *argv[]);
 int AbsoluteLoader(char* filename);
 long CPU();
 long SystemCall(long SystemCallID);
@@ -122,24 +122,24 @@ long io_putc(char R1, int *R0);
 
 void PrintPCB(long PCBptr)
 {
-    printf("PCB address = %d",  PCBptr);
-    printf("Next PCB Ptr = %d", mem[PCBptr +NextPtr]);
-    printf("PID = %d", mem[PCBptr + PCB_Pid]);
-    printf("State = %d", mem[PCBptr + PCB_State]);
-    printf("PC = %d", mem[PCBptr + PCB_PC]);
-    printf("SP = %d", mem[PCBptr + PCB_SP]); 
-    printf("Priority = %d", mem[PCBptr + PCB_Priority]);
-    printf("Stack Info: start address = %d", mem[PCBptr + PCB_StackStartAddr]);
-    printf("Size = %d", mem[PCBptr + PCB_StackSize]);
-    printf("GPR 0 = %d", mem[PCBptr + PCB_GPR0]);
-    printf("GPR 1 = %d", mem[PCBptr + PCB_GPR1]);
-    printf("GPR 2 = %d", mem[PCBptr + PCB_GPR2]);
-    printf("GPR 3 = %d", mem[PCBptr + PCB_GPR3]);
-    printf("GPR 4 = %d", mem[PCBptr + PCB_GPR4]);
-    printf("GPR 5 = %d", mem[PCBptr + PCB_GPR5]);
-    printf("GPR 6 = %d", mem[PCBptr + PCB_GPR6]);
-    printf("GPR 7 = %d", mem[PCBptr + PCB_GPR7]);
-    
+	printf("PCB address = %d",  PCBptr);
+	printf("Next PCB Ptr = %d", mem[PCBptr +NextPtr]);
+	printf("PID = %d", mem[PCBptr + PCB_Pid]);
+	printf("State = %d", mem[PCBptr + PCB_State]);
+	printf("PC = %d", mem[PCBptr + PCB_PC]);
+	printf("SP = %d", mem[PCBptr + PCB_SP]);
+	printf("Priority = %d", mem[PCBptr + PCB_Priority]);
+	printf("Stack Info: start address = %d", mem[PCBptr + PCB_StackStartAddr]);
+	printf("Size = %d", mem[PCBptr + PCB_StackSize]);
+	printf("GPR 0 = %d", mem[PCBptr + PCB_GPR0]);
+	printf("GPR 1 = %d", mem[PCBptr + PCB_GPR1]);
+	printf("GPR 2 = %d", mem[PCBptr + PCB_GPR2]);
+	printf("GPR 3 = %d", mem[PCBptr + PCB_GPR3]);
+	printf("GPR 4 = %d", mem[PCBptr + PCB_GPR4]);
+	printf("GPR 5 = %d", mem[PCBptr + PCB_GPR5]);
+	printf("GPR 6 = %d", mem[PCBptr + PCB_GPR6]);
+	printf("GPR 7 = %d", mem[PCBptr + PCB_GPR7]);
+
 }  // end of PrintPCB() function
 
 /*******************************************************************************
@@ -186,7 +186,7 @@ void InitializeSystem()
  *      ExecutionCompletionStatus	-Returns code returned by CPU
  ******************************************************************************/
 
-int main()
+int main(int argc, char *argv[])
 {
 	/* Local Variables */
 	char filename[MAX_FILENAME];
@@ -194,8 +194,11 @@ int main()
 	int ExecutionCompletionStatus;
 
 	//Prompt User to load Machine Code Program
-	printf("Enter Machine Code Program Filename >>");
-	fgets(filename, MAX_FILENAME, stdin);		// fgets is buffer-safe
+	if (argc <= 1) {
+		printf("Enter Machine Code Program Filename >>");
+		fgets(filename, MAX_FILENAME, stdin);		// fgets is buffer-safe
+	} else
+		filename == argv[1];
 
 
 	// Ready System and Load File
@@ -1053,7 +1056,7 @@ long AllocateOSMemory(long RequestedSize)  // return value contains address or e
 
 long FreeOSMemory(long *ptr, long size)
 {
-	if (ptr < 7000 || ptr > MAX_OS_MEMORY)
+	if (*ptr < 7000 || *ptr > MAX_OS_MEMORY)
 	{
 		printf("ERROR: Invalid Adress");
 		return(ErrorInvalidAddress);
@@ -1064,7 +1067,7 @@ long FreeOSMemory(long *ptr, long size)
 		size = 2; //minimum allocated size
 	}
 
-	else if (size < 1 || (ptr + size) >= MAX_OS_MEMORY)
+	else if (size < 1 || (*ptr + size) >= MAX_OS_MEMORY)
 	{
 		//invalid size
 		printf("ERROR: Invalid size or Invalid Address");
@@ -1392,14 +1395,14 @@ long SelectProcessFromRQ()
 	if (RQ != EndOfList)
 	{
 		// Remove first PCB RQ
-		
+
 		// Set RQ = next PCB pointed by RQ
 		RQ = mem[RQ + NextPtr];
 	}
 
 	// Set next point to EOL in the PCB
 	// Set Next PCBfield in the given PCB to End of List
-	
+
 	mem[PCBptr + NextPtr];
 
 	return(PCBptr);
@@ -1424,7 +1427,7 @@ long SelectProcessFromRQ()
 void SaveContext(long PCBptr)
 {
 	//Assume PCBptr is a valid pointer
-	
+
 	mem[PCBptr + PCB_GPR0] = gpr[0];
 	mem[PCBptr + PCB_GPR1] = gpr[1];
 	mem[PCBptr + PCB_GPR2] = gpr[2];
@@ -1433,11 +1436,11 @@ void SaveContext(long PCBptr)
 	mem[PCBptr + PCB_GPR5] = gpr[5];
 	mem[PCBptr + PCB_GPR6] = gpr[6];
 	mem[PCBptr + PCB_GPR7] = gpr[7];
-	
+
 	mem[PCBptr + PCB_SP] = sp;
-	
+
 	mem[PCBptr + PCB_PC] = pc;
-	
+
 
 	//Copy all CPU GPRs into PCB using PCBptr with or without using loop
 
@@ -1469,7 +1472,7 @@ void Dispatcher(long PCBptr)
 
 	//Restore SP and PC from given PCB
 	//UserMode is 2, OSMode is 1
-	
+
 	gpr[0] = mem[PCBptr + PCB_GPR0];
 	gpr[1] = mem[PCBptr + PCB_GPR0];
 	gpr[2] = mem[PCBptr + PCB_GPR2];
@@ -1478,10 +1481,10 @@ void Dispatcher(long PCBptr)
 	gpr[5] = mem[PCBptr + PCB_GPR5];
 	gpr[6] = mem[PCBptr + PCB_GPR6];
 	gpr[7] = mem[PCBptr + PCB_GPR7];
-    
-    sp = mem[PCBptr + PCB_SP];
-    pc = mem[PCBptr + PCB_PC];
-    
+
+	sp = mem[PCBptr + PCB_SP];
+	pc = mem[PCBptr + PCB_PC];
+
 	psr = MACHINE_MODE_USER;
 
 	return;
@@ -1611,18 +1614,18 @@ void CheckAndProcessInterrupt()
 
 	int InterruptID;
 	// Prompt and read interrupt ID
-	printf("Possible interrupt IDs: \n0 - no interrupt
-									\n1 - run program
-									\n2 - shutdown system
-									\n3 - input operation completion (io_getc)
-									\n4 - output operation completion (io_putc)");
+	printf("Possible interrupt IDs: \n0 - no interrupt"
+			"\n1 - run program"
+			"\n2 - shutdown system"
+			"\n3 - input operation completion (io_getc)"
+			"\n4 - output operation completion (io_putc)");
 
 	printf("Input interrupt ID: ");
 	scanf("%d", &InterruptID);
 	printf("Interrupt read: %d", InterruptID);
 
 	// Process interrupt
-	switch(InterruptID);
+	switch(InterruptID)
 	{
 		case 0: // no interrupt
 			break;
@@ -1632,7 +1635,7 @@ void CheckAndProcessInterrupt()
 			break;
 
 		case 2: // shutdown system
-			ISRshutdownSystem();
+			//ISRshutdownSystem();
 			break;
 
 		case 3: // input operation completion (io_getc)
@@ -1686,17 +1689,18 @@ void ISRrunProgramInterrupt()
  * Function: Input Completion Interrupt
  *
  * Description: Read PID of the process completing the io_getc operation and
- * 				read one character from the keyboard (input device). Store the
- * 				character in the GPR in the PCB of the process.
- * 
+ * read one character from the keyboard (input device). Store the character in
+ * the GPR in the PCB of the process.
+ *
  * Input Parameters: N/A
- * 
+ *
  * Output Parameters: N/A
- * 
+ *
  * Function Return Value: N/A
  ******************************************************************************/
 
-void ISRinputCompletionInterrupt() // This is definitely broken right now
+// This is definitely broken right now
+void ISRinputCompletionInterrupt()
 {
 
 	int ProcessID;
@@ -1711,18 +1715,18 @@ void ISRinputCompletionInterrupt() // This is definitely broken right now
 
 	// Search WQ to find the PCB having the given PID
 	while(currentPCBptr != EndOfList){
-		if(mem[*currentPCBptr + nextptr] == ProcessID){
+		if(mem[currentPCBptr + NextPtr] == ProcessID){
 			// match found, remove from WQ
 			if (previousPCBptr == EndOfList){
 				// first PCB
-				WQ = mem[*currentPCBptr + nextptr];
+				WQ = mem[currentPCBptr + NextPtr];
 			}
 			else
 			{
 				// not first PCB
-				mem[*previousPCBptr + nextptr] = mem[*currentPCBptr + nextptr];
+				mem[previousPCBptr + NextPtr] = mem[currentPCBptr + NextPtr];
 			}
-			mem[*currentPCBptr + nextptr] = EndOfList;
+			mem[currentPCBptr + NextPtr] = EndOfList;
 
 			// This part of the code might not fit here, the pseudocode is hurting my brain.
 			// Read one character from standard input device keyboard
@@ -1730,40 +1734,41 @@ void ISRinputCompletionInterrupt() // This is definitely broken right now
 			GPRChar = getchar();
 
 			// Store the character in the GPR in the PCB, type cast char->long
-			mem[*currentPCBptr + PCB_GPR0] = long(GPRChar);
+			mem[currentPCBptr + PCB_GPR0] = (long)GPRChar;
 
 			// Set the process state to Ready in the PCB
-			mem[*currentPCBptr + PCB_State] = "Ready";
+			mem[currentPCBptr + PCB_State] = "Ready"; // TODO: FIX
 
 			// Insert PCB into RQ
-			InsertIntoRQ(currentPCBptr);
-			return(currentPCBptr);
+			InsertIntoRQ(&currentPCBptr);
+			return(currentPCBptr); 			// TODO: Function is void but returns a value...?
 		}
 		else {
-		// If no match is found in WQ, then search RQ
-		currentPCBptr = RQ;
+			// If no match is found in WQ, then search RQ
+			currentPCBptr = RQ;
 
-		// Read one character from standard input device keyboard
-		GPRChar = getchar();
+			// Read one character from standard input device keyboard
+			GPRChar = getchar();
 
-		// Store the character in the GPR in the PCB	
-		mem[*currentPCBptr + PCB_GPR0] = long(GPRChar);
-		break;
+			// Store the character in the GPR in the PCB
+			mem[currentPCBptr + PCB_GPR0] = (long)GPRChar;
+			break;
 		}
 	}
 	previousPCBptr = currentPCBptr;
-	currentPCBptr = mem[*currentPCBptr + nextptr];
+	currentPCBptr = mem[currentPCBptr + NextPtr];
 
 	// If no matching PCB is found in WQ, and RQ, print invalid PID as an error message.
 	printf("Invalid Process ID");
+	// TODO: Return some error here
 }
 
 /*******************************************************************************
  * Function: Output Completion Interrupt
  *
  * Description: Read PID of the process completing the io_putc operation and
- * 				display one character on the monitor (output device) from the GPR
- * 				in the PCB of the process
+ * display one character on the monitor (output device) from the GPR in the PCB
+ * of the process
  *
  * Input Parameters: N/A
  *
@@ -1822,11 +1827,11 @@ void ISRoutputCompletionInterrupt()
  * Function: ISRshutdownSystem
  *
  * Description: TODO
- * 
+ *
  * Input Parameters: TODO
- * 
+ *
  * Output Parameters: TODO
- * 
+ *
  * Function Return Value: TODO
  ******************************************************************************/
 void ISRshutdownSystem(){
@@ -1876,7 +1881,7 @@ long IOGetCSystemCall(char R1, int *R0)
  * Function: IOPutC
  *
  * Description: Specifies a character to be printed on the user terminal.
- * 				Forces rescheduling
+ * Forces rescheduling
  * Input Parameters: R1 = character to be displayed
  *
  * Output Parameters

@@ -1607,20 +1607,22 @@ long InsertIntoWQ(long *PCBptr)
 
 void CheckAndProcessInterrupt()
 {
+
 	int InterruptID;
 	// Prompt and read interrupt ID
-	printf("Possible interrupt IDs: \n0 - no interrupt"
-			"\n1 - run program"
-			"\n2 - shutdown system"
-			"\n3 - input operation completion(io_getc)"
-			"\n4 - output operation completion(io_putc)");
+	printf("Possible interrupt IDs: \n0 - no interrupt
+									\n1 - run program
+									\n2 - shutdown system
+									\n3 - input operation completion (io_getc)
+									\n4 - output operation completion (io_putc)");
 
 	printf("Input interrupt ID: ");
-	scanf("%d", InterruptID);
+	scanf("%d", &InterruptID);
 	printf("Interrupt read: %d", InterruptID);
 
 	// Process interrupt
-	switch (InterruptID){
+	switch(InterruptID);
+	{
 		case 0: // no interrupt
 			break;
 
@@ -1629,7 +1631,7 @@ void CheckAndProcessInterrupt()
 			break;
 
 		case 2: // shutdown system
-			//ISRshutdownSystem();	//TODO: Non-existent function
+			ISRshutdownSystem();
 			break;
 
 		case 3: // input operation completion (io_getc)
@@ -1677,62 +1679,79 @@ void ISRrunProgramInterrupt()
 	return;
 }
 
+
+
 /*******************************************************************************
  * Function: Input Completion Interrupt
  *
  * Description: Read PID of the process completing the io_getc operation and
  * 				read one character from the keyboard (input device). Store the
  * 				character in the GPR in the PCB of the process.
- *
+ * 
  * Input Parameters: N/A
- *
+ * 
  * Output Parameters: N/A
- *
+ * 
  * Function Return Value: N/A
  ******************************************************************************/
 
-void ISRinputCompletionInterrupt()
+void ISRinputCompletionInterrupt() // This is definitely broken right now
 {
 
 	int ProcessID;
 	long currentPCBptr = WQ;
 	char PCBReplacementChar;
+	long previousPCBptr = EndOfList;
+	char GPRChar;
 
 	// Prompt and read PID of the process completing input completion
 	printf("Input PID of the process completing input completion: ");
-	scanf("%d", ProcessID);
+	scanf("%d", &ProcessID);
 
 	// Search WQ to find the PCB having the given PID
-	while (currentPCBptr != EndOfList) {
-		if (mem[currentPCBptr] == ProcessID) {
-			// Remove PCB from the WQ
+	while(currentPCBptr != EndOfList){
+		if(mem[*currentPCBptr + nextptr] == ProcessID){
+			// match found, remove from WQ
+			if (previousPCBptr == EndOfList){
+				// first PCB
+				WQ = mem[*currentPCBptr + nextptr];
+			}
+			else
+			{
+				// not first PCB
+				mem[*previousPCBptr + nextptr] = mem[*currentPCBptr + nextptr];
+			}
+			mem[*currentPCBptr + nextptr] = EndOfList;
 
+			// This part of the code might not fit here, the pseudocode is hurting my brain.
 			// Read one character from standard input device keyboard
-			// (system call?)
-
+			printf("Enter a character: ");
+			GPRChar = getchar();
 
 			// Store the character in the GPR in the PCB, type cast char->long
+			mem[*currentPCBptr + PCB_GPR0] = long(GPRChar);
 
 			// Set the process state to Ready in the PCB
+			mem[*currentPCBptr + PCB_State] = "Ready";
 
 			// Insert PCB into RQ
+			InsertIntoRQ(currentPCBptr);
+			return(currentPCBptr);
+		}
+		else {
+		// If no match is found in WQ, then search RQ
+		currentPCBptr = RQ;
 
-			break;
+		// Read one character from standard input device keyboard
+		GPRChar = getchar();
+
+		// Store the character in the GPR in the PCB	
+		mem[*currentPCBptr + PCB_GPR0] = long(GPRChar);
+		break;
 		}
 	}
-
-	// If no match is found in WQ, then search RQ
-	currentPCBptr = RQ;
-	while (currentPCBptr != EndOfList) {
-		if (mem[currentPCBptr] == ProcessID) {
-			// Read one character from standard input device keyboard
-
-			// Store the character in the GPR in the PCB
-
-			break;
-		}
-
-	}
+	previousPCBptr = currentPCBptr;
+	currentPCBptr = mem[*currentPCBptr + nextptr];
 
 	// If no matching PCB is found in WQ, and RQ, print invalid PID as an error message.
 	printf("Invalid Process ID");
@@ -1796,6 +1815,39 @@ void ISRoutputCompletionInterrupt()
 
 	// If no matching PCB is found in WQ, and RQ, print invalid PID as an error message.
 	printf("Invalid Process ID");
+}
+
+/*******************************************************************************
+ * Function: ISRshutdownSystem
+ *
+ * Description: TODO
+ * 
+ * Input Parameters: TODO
+ * 
+ * Output Parameters: TODO
+ * 
+ * Function Return Value: TODO
+ ******************************************************************************/
+void ISRshutdownSystem(){
+
+	// Terminate all processes in RQ one by one.
+	long PCBptr = RQ;
+
+	while(PCBptr != EndOfList){
+		RQ = PCBptr;
+		TerminateProcess(PCBptr);
+		PCBptr = RQ;
+	}
+
+	// Terminate all processes in WQ one by one.
+	PCBptr = WQ;
+	while(PCBptr != EndOfList){
+		WQ = PCBptr;
+		TerminateProcess(PCBptr);
+		PCBptr = WQ;
+	}
+
+	return;
 }
 
 /*******************************************************************************

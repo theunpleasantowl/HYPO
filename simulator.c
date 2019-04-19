@@ -11,6 +11,7 @@
 
 /*** VALUE CONSTANTS ***/
 #define SCRIPT_INDICATOR_END	-1
+#define MAX_FILENAME		128
 
 // Simulator Execution Status
 #define SIMULATOR_STATUS_HALTED	0
@@ -176,13 +177,13 @@ void InitializeSystem()
 int main()
 {
 	/* Local Variables */
-	char filename[128];
+	char filename[MAX_FILENAME];
 	long ReturnValue;
 	int ExecutionCompletionStatus;
 
 	//Prompt User to load Machine Code Program
 	printf("Enter Machine Code Program Filename >>");
-	scanf("%127s", filename);
+	fgets(filename, MAX_FILENAME, stdin);		// fgets is buffer-safe
 
 
 	// Ready System and Load File

@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 
 /*** VIRTUAL SYSTEM PARAMETERS ***/
 #define SYSTEM_MEMORY_SIZE      10000
@@ -7,7 +7,6 @@
 #define TIMESLICE		200
 #define ReadyState 1
 #define EndOfList -1
-
 
 /*** VALUE CONSTANTS ***/
 #define SCRIPT_INDICATOR_END	-1
@@ -56,7 +55,7 @@ const int Running = 2;
 const int Waiting = 3;
 const int PCBsize = 22;
 const int NextPtr = 0;
-const int PCB_pid = 1;
+const int PCB_Pid = 1;
 const int PCB_State = 2;
 const int PCB_Reason = 3;
 const int PCB_Priority = 4;
@@ -122,12 +121,24 @@ long io_putc(char R1, int *R0);
 
 void PrintPCB(long PCBptr)
 {
-	/*
-	   Print the values of the following fields from PCB with a text before the value like below:
-	   PCB address = 6000, Next PCB Ptr = 5000, PID = 2, State = 2, PC = 200, SP = 4000,
-	   Priority = 127, Stack info: start address = 3990, size = 10
-	   GPRs = print 8 values of GPR 0 to GPR 7
-	   */
+    printf("PCB address = %d",  PCBptr);
+    printf("Next PCB Ptr = %d", mem[PCBptr +NextPtr]);
+    printf("PID = %d", mem[PCBptr + PCB_Pid]);
+    printf("State = %d", mem[PCBptr + PCB_State]);
+    printf("PC = %d", mem[PCBptr + PCB_PC]);
+    printf("SP = %d", mem[PCBptr + PCB_SP]); 
+    printf("Priority = %d", mem[PCBptr + PCB_Priority]);
+    printf("Stack Info: start address = %d", mem[PCBptr + PCB_StackStartAddr]);
+    printf("Size = %d", mem[PCBptr + PCB_StackSize]);
+    printf("GPR 0 = %d", mem[PCBptr + PCB_GPR0]);
+    printf("GPR 1 = %d", mem[PCBptr + PCB_GPR1]);
+    printf("GPR 2 = %d", mem[PCBptr + PCB_GPR2]);
+    printf("GPR 3 = %d", mem[PCBptr + PCB_GPR3]);
+    printf("GPR 4 = %d", mem[PCBptr + PCB_GPR4]);
+    printf("GPR 5 = %d", mem[PCBptr + PCB_GPR5]);
+    printf("GPR 6 = %d", mem[PCBptr + PCB_GPR6]);
+    printf("GPR 7 = %d", mem[PCBptr + PCB_GPR7]);
+    
 }  // end of PrintPCB() function
 
 /*******************************************************************************
@@ -154,6 +165,7 @@ void InitializeSystem()
 
 	/* Assigns value `0` to Each Individual Hardware Variable */
 	mar = mbr = clock = ir = psr = pc = sp = 0;
+
 }
 
 /*******************************************************************************
@@ -301,7 +313,6 @@ long CPU()
 	     op2addr, op2val, remainder, result, SystemCallID;
 	long status = OK;
 	long TimeLeft = TIMESLICE;
-
 
 	// Run CPU until HALT state
 	while (status = OK && TimeLeft > 0) {
@@ -1308,7 +1319,7 @@ void InitializePCB(long PCBptr)
 		mem[PCBptr + i] = 0;
 	}
 	// Allocate PID and set it in the PCB. PID zero is invalidcvoid
-	mem[PCBptr + PCB_pid] = ProcessID++;  // ProcessID is global variable initialized to 1
+	mem[PCBptr + PCB_Pid] = ProcessID++;  // ProcessID is global variable initialized to 1
 
 	//Set state field in the PCB = ReadyState;
 	mem[PCBptr + PCB_State] = ReadyState;
@@ -1350,7 +1361,9 @@ long PrintQueue(long Qptr)
 	while (currentPCBPtr != EndOfList)
 	{
 		//Print PCB passing currentPCBPtr
+		PrintPCB(currentPCBPtr);
 		//currentPCBPtr = nextPCBlink;
+		currentPCBPtr = mem[currentPCBPtr + NextPtr];
 	}
 
 	return(OK);
@@ -1378,11 +1391,15 @@ long SelectProcessFromRQ()
 	if (RQ != EndOfList)
 	{
 		// Remove first PCB RQ
+		
 		// Set RQ = next PCB pointed by RQ
+		RQ = mem[RQ + NextPtr];
 	}
 
 	// Set next point to EOL in the PCB
 	// Set Next PCBfield in the given PCB to End of List
+	
+	mem[PCBptr + NextPtr];
 
 	return(PCBptr);
 } //end of SelectProcessFromRQ
@@ -1406,6 +1423,20 @@ long SelectProcessFromRQ()
 void SaveContext(long PCBptr)
 {
 	//Assume PCBptr is a valid pointer
+	
+	mem[PCBptr + PCB_GPR0] = gpr[0];
+	mem[PCBptr + PCB_GPR1] = gpr[1];
+	mem[PCBptr + PCB_GPR2] = gpr[2];
+	mem[PCBptr + PCB_GPR3] = gpr[3];
+	mem[PCBptr + PCB_GPR4] = gpr[4];
+	mem[PCBptr + PCB_GPR5] = gpr[5];
+	mem[PCBptr + PCB_GPR6] = gpr[6];
+	mem[PCBptr + PCB_GPR7] = gpr[7];
+	
+	mem[PCBptr + PCB_SP] = sp;
+	
+	mem[PCBptr + PCB_PC] = pc;
+	
 
 	//Copy all CPU GPRs into PCB using PCBptr with or without using loop
 
@@ -1437,6 +1468,19 @@ void Dispatcher(long PCBptr)
 
 	//Restore SP and PC from given PCB
 	//UserMode is 2, OSMode is 1
+	
+	gpr[0] = mem[PCBptr + PCB_GPR0];
+	gpr[1] = mem[PCBptr + PCB_GPR0];
+	gpr[2] = mem[PCBptr + PCB_GPR2];
+	gpr[3] = mem[PCBptr + PCB_GPR3];
+	gpr[4] = mem[PCBptr + PCB_GPR4];
+	gpr[5] = mem[PCBptr + PCB_GPR5];
+	gpr[6] = mem[PCBptr + PCB_GPR6];
+	gpr[7] = mem[PCBptr + PCB_GPR7];
+    
+    sp = mem[PCBptr + PCB_SP];
+    pc = mem[PCBptr + PCB_PC];
+    
 	psr = MACHINE_MODE_USER;
 
 	return;
@@ -1471,7 +1515,6 @@ long InsertIntoRQ(long *PCBptr)
 		return(ErrorInvalidAddress);
 	}
 
-	//TODO: replace StateIndex, ready, NextPointerIndex
 	mem[*PCBptr + PCB_State] = Ready;   //set state to ready
 	mem[*PCBptr + NextPtr] = EndOfList; //set next pointer to end of list
 

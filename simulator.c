@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 /*** VIRTUAL SYSTEM PARAMETERS ***/
 #define SYSTEM_MEMORY_SIZE      10000
@@ -197,8 +198,10 @@ int main(int argc, char *argv[])
 	if (argc <= 1) {
 		printf("Enter Machine Code Program Filename >>");
 		fgets(filename, MAX_FILENAME, stdin);		// fgets is buffer-safe
+		strtok(filename, "\n");
+
 	} else
-		filename == argv[1];
+		strcpy(filename, argv[1]);
 
 
 	// Ready System and Load File

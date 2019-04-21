@@ -1744,7 +1744,7 @@ void ISRinputCompletionInterrupt()
 
 			// Insert PCB into RQ
 			InsertIntoRQ(&currentPCBptr);
-			return(currentPCBptr); 			// TODO: Function is void but returns a value...?
+			//return(currentPCBptr); 			// TODO: Function is void but returns a value...?
 		}
 		else {
 			// If no match is found in WQ, then search RQ
@@ -1763,7 +1763,7 @@ void ISRinputCompletionInterrupt()
 
 	// If no matching PCB is found in WQ, and RQ, print invalid PID as an error message.
 	printf("Invalid Process ID");
-	// TODO: Return some error here
+	return;
 }
 
 /*******************************************************************************

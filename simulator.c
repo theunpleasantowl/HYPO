@@ -108,42 +108,6 @@ long io_getc(char R1, int *R0);
 long io_putc(char R1, int *R0);
 
 /*******************************************************************************
- * Function: PrintPCB
- * Description: Resets all Global Vars (Hardware) to an initial value 0
- *
- * Input Parameters
- *      None
- *
- * Output Parameters
- *      None
- *
- * Function Return Value
- *      None
- ******************************************************************************/
-
-void PrintPCB(long PCBptr)
-{
-	printf("PCB address = %d",  PCBptr);
-	printf("Next PCB Ptr = %d", mem[PCBptr +NextPtr]);
-	printf("PID = %d", mem[PCBptr + PCB_Pid]);
-	printf("State = %d", mem[PCBptr + PCB_State]);
-	printf("PC = %d", mem[PCBptr + PCB_PC]);
-	printf("SP = %d", mem[PCBptr + PCB_SP]);
-	printf("Priority = %d", mem[PCBptr + PCB_Priority]);
-	printf("Stack Info: start address = %d", mem[PCBptr + PCB_StackStartAddr]);
-	printf("Size = %d", mem[PCBptr + PCB_StackSize]);
-	printf("GPR 0 = %d", mem[PCBptr + PCB_GPR0]);
-	printf("GPR 1 = %d", mem[PCBptr + PCB_GPR1]);
-	printf("GPR 2 = %d", mem[PCBptr + PCB_GPR2]);
-	printf("GPR 3 = %d", mem[PCBptr + PCB_GPR3]);
-	printf("GPR 4 = %d", mem[PCBptr + PCB_GPR4]);
-	printf("GPR 5 = %d", mem[PCBptr + PCB_GPR5]);
-	printf("GPR 6 = %d", mem[PCBptr + PCB_GPR6]);
-	printf("GPR 7 = %d", mem[PCBptr + PCB_GPR7]);
-
-}  // end of PrintPCB() function
-
-/*******************************************************************************
  * Function: InitializeSystem
  *
  * Description: Resets all Global Vars (Hardware) to an initial value 0
@@ -1085,16 +1049,25 @@ long FreeOSMemory(long *ptr, long size)
 /*******************************************************************************
  * Function: AllocateUserMemory
  *
- * Description: //TODO
+ * Description: 
+ *      This function is used to specify an amount of space in the user
+        memory to be allocated based on the requested size
  *
  * Input Parameters
- * //TODO
+ *      RequestedSize - long value specfied by the user, 
+ *                      to determine size of memory block to be allocated
+ *                      minimum value is 2 so if user requests less than 2 
+ *                      the program will automatically change it to 2
  *
  * Output Parameters
- * //TODO
+ *      None
  *
  * Function Return Value
- * //TODO
+ *      OK
+ *      ErrorNoFreeMemory
+ *      ErrorInvalidMemorySize
+ * 
+ * initial implementation done by Jacob Nowlan
  ******************************************************************************/
 
 long AllocateUserMemory(long RequestedSize) //return value contains address or ERROR
@@ -1177,16 +1150,22 @@ long AllocateUserMemory(long RequestedSize) //return value contains address or E
 /*******************************************************************************
  * Function: FreeUserMemory
  *
- * Description: //TODO
+ * Description: 
+ *      This function frees up space in user memory
+ *      This frees memory by using the pointer to specify
+ *      the area that will be overridden
  *
  * Input Parameters
- * //TODO
+ *      ptr  - long value pointing to location in user memory that will be freed
+ *      size - amount of space in the user memory to be freed
  *
  * Output Parameters
- * //TODO
+ *      UserFreeList
  *
  * Function Return Value
- * //TODO
+ *      ErrorInvalidAddress
+ * 
+ * initial implementation by Jacob Nowlan
  ******************************************************************************/
 
 long FreeUserMemory(long ptr, long size)
@@ -1217,16 +1196,22 @@ long FreeUserMemory(long ptr, long size)
 /*******************************************************************************
  * Function: MemAllocSystemCall
  *
- * Description: //TODO
+ * Description: this is a system call used to allow the machine code
+ *              to request a service from the operating system,
+ *              the service being memory allocation
  *
  * Input Parameters
- * //TODO
+ *      None
  *
  * Output Parameters
- * //TODO
+ *      gpr[1]
+ *      gpr[2]
  *
  * Function Return Value
- * //TODO
+ *      OK
+ *      ErrorInvalidAddress
+ * 
+ * initial implementation by Jacob Nowlan
  ******************************************************************************/
 
 long MemAllocSystemCall()
@@ -1265,16 +1250,21 @@ long MemAllocSystemCall()
 /*******************************************************************************
  * Function: MemFreeSystemCall
  *
- * Description: //TODO
+ * Description: this is a system call used to allow the machine code
+ *              to request a service from the operating system,
+ *              allowing us to free space in user memory
  *
  * Input Parameters
- * //TODO
+ *      None
  *
  * Output Parameters
- * //TODO
+ *      gpr[0] 
  *
  * Function Return Value
- * //TODO
+ *      OK
+ *      ErrorInvalidAddress
+ * 
+ * implemtation by Jacob Nowlan
  ******************************************************************************/
 
 long MemFreeSystemCall()
@@ -1305,16 +1295,27 @@ long MemFreeSystemCall()
 /*******************************************************************************
  * Function: InitializePCB
  *
- * Description: //TODO
+ * Description: 
+ *      This function initializes all important values of the PCB
+ *      sets all values in the user memory to 0
+ *      allocates PID and set in in the pcb
+ *      sets default state to ReadyState
+ *      sets priority to default priority
+ *      sets next pointer to point to end of list
  *
  * Input Parameters
- * //TODO
+ *      PCBptr  - long value specifying adress in pcb
  *
  * Output Parameters
- * //TODO
+ *      mem[PCBptr + PCB_Pid]       - ProcessID
+ *      mem[PCBptr + PCB_State]     - the state of os
+ *      mem[PCBptr + PCB_Priority]  - priority
+ *      mem[PCBptr + NextPtr]       - nextPCBlink
  *
  * Function Return Value
- * //TODO
+ *      None
+ * 
+ * Initial implementation by Jacob Nowlan
  ******************************************************************************/
 
 void InitializePCB(long PCBptr)
@@ -1341,18 +1342,57 @@ void InitializePCB(long PCBptr)
 }
 
 /*******************************************************************************
- * Function: PrintQueue
- *
- * Description: //TODO
+ * Function: PrintPCB
+ * Description: This function simply displays the status of the current PCB
  *
  * Input Parameters
- * //TODO
+ *      PCBptr      - the pointer to the start of the PCB
  *
  * Output Parameters
- * //TODO
+ *      None
  *
  * Function Return Value
- * //TODO
+ *      None
+ * 
+ * Initial implementation by Jacob Nowlan
+ ******************************************************************************/
+
+void PrintPCB(long PCBptr)
+{
+	printf("PCB address = %d",  PCBptr);
+	printf("Next PCB Ptr = %d", mem[PCBptr +NextPtr]);
+	printf("PID = %d", mem[PCBptr + PCB_Pid]);
+	printf("State = %d", mem[PCBptr + PCB_State]);
+	printf("PC = %d", mem[PCBptr + PCB_PC]);
+	printf("SP = %d", mem[PCBptr + PCB_SP]);
+	printf("Priority = %d", mem[PCBptr + PCB_Priority]);
+	printf("Stack Info: start address = %d", mem[PCBptr + PCB_StackStartAddr]);
+	printf("Size = %d", mem[PCBptr + PCB_StackSize]);
+	printf("GPR 0 = %d", mem[PCBptr + PCB_GPR0]);
+	printf("GPR 1 = %d", mem[PCBptr + PCB_GPR1]);
+	printf("GPR 2 = %d", mem[PCBptr + PCB_GPR2]);
+	printf("GPR 3 = %d", mem[PCBptr + PCB_GPR3]);
+	printf("GPR 4 = %d", mem[PCBptr + PCB_GPR4]);
+	printf("GPR 5 = %d", mem[PCBptr + PCB_GPR5]);
+	printf("GPR 6 = %d", mem[PCBptr + PCB_GPR6]);
+	printf("GPR 7 = %d", mem[PCBptr + PCB_GPR7]);
+
+}  // end of PrintPCB() function
+
+/*******************************************************************************
+ * Function: PrintQueue
+ *
+ * Description: This function will print all of the processes
+ *              that are in the queue until it reaches the EndOfList
+ *
+ * Input Parameters
+ *      Qptr    -pointer to a process in the queue
+ *
+ * Output Parameters
+ *      none
+ *
+ * Function Return Value
+ *      OK
  ******************************************************************************/
 
 long PrintQueue(long Qptr)
@@ -1415,16 +1455,28 @@ long SelectProcessFromRQ()
 /*******************************************************************************
  * Function: SaveContext
  *
- * Description: //TODO
+ * Description: Save context stores all of the current values of the gpr's into 
+ *              the PCB, as well as storing the SP and PC into the PCB
  *
  * Input Parameters
- * //TODO
+ *      PCBptr      -Pointer to start of PCB
  *
  * Output Parameters
- * //TODO
+ *      mem[PCBptr + PCB_GPR0]
+ *      mem[PCBptr + PCB_GPR1]
+ *      mem[PCBptr + PCB_GPR2]
+ *      mem[PCBptr + PCB_GPR3]
+ *      mem[PCBptr + PCB_GPR4]
+ *      mem[PCBptr + PCB_GPR5]
+ *      mem[PCBptr + PCB_GPR6]
+ *      mem[PCBptr + PCB_GPR7]
+ *      mem[PCBptr + PCB_SP]
+ *      mem[PCBptr + PCB_PC]
  *
  * Function Return Value
- * //TODO
+ *      None
+ * 
+ * initial implementation by Jacob Nowlan
  ******************************************************************************/
 
 void SaveContext(long PCBptr)
@@ -1454,16 +1506,30 @@ void SaveContext(long PCBptr)
 /*******************************************************************************
  * Function: Dispatcher
  *
- * Description: //TODO
+ * Description: The Dispatcher serves as the opposite of save context
+ *              this funtion stores the values of pcb into the systems GPR's,
+ *              sp, and pc, as well as setting the psr to user mode
  *
  * Input Parameters
- * //TODO
+ *      PCBptr      - long value pointing to pcb
  *
  * Output Parameters
- * //TODO
+ *      gpr[0]
+ *      gpr[1]
+ *      gpr[2] 
+ *      gpr[3]
+ *      gpr[4]
+ *      gpr[5]
+ *      gpr[6]
+ *      gpr[7]
+ *      sp
+ *      pc
+ *      psr
  *
  * Function Return Value
- * //TODO
+ *      None
+ * 
+ * Initial implementation by Jacob Nowlan
  ******************************************************************************/
 
 void Dispatcher(long PCBptr)
@@ -1474,8 +1540,6 @@ void Dispatcher(long PCBptr)
 	//This is opposite of save CPU context
 
 	//Restore SP and PC from given PCB
-	//UserMode is 2, OSMode is 1
-
 	gpr[0] = mem[PCBptr + PCB_GPR0];
 	gpr[1] = mem[PCBptr + PCB_GPR0];
 	gpr[2] = mem[PCBptr + PCB_GPR2];
@@ -1901,3 +1965,5 @@ long IOPutCSystemCall(char R1, int *R0)
 	*R0 = OK;
 	return *R0;
 }
+
+

@@ -43,6 +43,13 @@
 #define ErrorInvalidMemorySize  -13
 #define ErrorNoFreeMemory       -14
 
+/*** EVENT CODES ***/
+#define StartOfInput			0
+#define StartOfOutput			1
+#define InputCompletion			2
+#define OutputCompletion		3
+#define TimeSliceExpired		4
+
 /*** GLOBAL VARS ***/
 long mem[SYSTEM_MEMORY_SIZE], gpr[GPR_NUMBER];
 long mar, mbr, clock, ir, psr, pc, sp;
@@ -181,6 +188,8 @@ int main(int argc, char *argv[])
 	char filename[MAX_FILENAME];
 	long ReturnValue;
 	int ExecutionCompletionStatus;
+	long PCBPtr;
+
 
 	//Prompt User to load Machine Code Program
 	if (argc <= 1) {
@@ -194,8 +203,71 @@ int main(int argc, char *argv[])
 
 	// Ready System and Load File
 	InitializeSystem();
+
+	while (SysShutdownStatus != 1){
+
+		// Check and process interrupt
+		CheckAndProcessInterrupt();
+
+		// Dump RQ and WQ
+		printf("RQ: Before CPU scheduling\n");
+		PrintQueue(RQ);
+		printf("WQ: Before CPU scheduling\n");
+		PrintQueue(WQ);
+		DumpMemory("Dynamic Memory Area before CPU scheduling", 0, 99);
+
+		// Select next process from RQ to give CPU
+		PCBPtr = SelectProcessFromRQ();
+
+		// Perform restore context using Dispatcher
+		Dispatcher(PCBPtr);
+
+		// Dump RQ
+		printf("RQ: After selecting process from RQ \n");
+		PrintQueue(RQ);
+
+		// Execute instructions of the running process using the CPU
+		ExecutionCompletionStatus = CPU();
+
+		// Dump dynamic memory area
+		DumpMemory("After executing program", MAX_USER_MEMORY, MAX_HEAP_MEMORY);
+
+		// Check return status
+		if(ExecutionCompletionStatus = TimeSliceExpired){
+			SaveContext(PCBPtr); // running process is losing CPU
+			InsertIntoRQ(PCBPtr);
+			PCBPtr = EndOfList;
+		}
+		else if (ExecutionCompletionStatus = SIMULATOR_STATUS_HALTED | ExecutionCompletionStatus < 0){
+			// TerminateProcess(PCBPtr);
+			PCBPtr = EndOfList;
+			 
+		}
+		else if (ExecutionCompletionStatus = StartOfInput){
+			mem[PCBPtr + PCB_Reason] = InputCompletion;
+			InsertIntoWQ(PCBPtr);
+			PCBPtr = EndOfList;
+		}
+		else if (ExecutionCompletionStatus = StartOfOutput){
+			mem[PCBPtr + PCB_Reason] = OutputCompletion;
+			InsertIntoWQ(PCBPtr);
+			PCBPtr = EndOfList;
+		}
+		else{
+			printf("Unknown programming error");
+		}
+	}
+
+
+		// Print OS is shutting down message
+		printf("OS shutting down");
+		return(ExecutionCompletionStatus); // Terminate operating system
+
+	}
+
 	pc = AbsoluteLoader(filename);
 
+    /* // From Homework 1
 	// Check for Negative Error Code
 	if (pc < 0) {
 		printf("FILE ERROR: %d\n", pc);
@@ -207,8 +279,9 @@ int main(int argc, char *argv[])
 	ExecutionCompletionStatus = CPU();
 	printf("Execution Status: %d\n", ExecutionCompletionStatus);
 	DumpMemory("Program Execution Stopped System", 0, 99);
-
 	return(ExecutionCompletionStatus);
+    */
+
 }
 
 /*******************************************************************************

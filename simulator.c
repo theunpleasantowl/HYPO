@@ -47,6 +47,8 @@
 long mem[SYSTEM_MEMORY_SIZE], gpr[GPR_NUMBER];
 long mar, mbr, clock, ir, psr, pc, sp;
 long OSFreeList, UserFreeList, RQ, WQ;
+long SysShutdownStatus;
+
 //long EndOfList = -1; //indicates end of OSFreeList or UserFreeList
 
 long ProcessID = 1;
@@ -105,8 +107,9 @@ void CheckAndProcessInterrupt();
 void ISRrunProgramInterrupt();
 void ISRinputCompletionInterrupt();
 void ISRoutputCompletionInterrupt();
-long io_getc(char R1, int *R0);
-long io_putc(char R1, int *R0);
+long IOGetCSystemCall(char R1, int *R0);
+long IOPutCSystemCall(char R1, int *R0);
+long SearchAndRemovePCBfromWQ(long ProcessID);
 
 /*******************************************************************************
  * Function: InitializeSystem
@@ -124,6 +127,9 @@ long io_putc(char R1, int *R0);
  ******************************************************************************/
 void InitializeSystem()
 {
+	char filename[MAX_FILENAME];
+	filename = "nullprocess.txt";
+
 	/* Initialize Memory Array and then GPR Register Array */
 	for (int i = 0; i < SYSTEM_MEMORY_SIZE; i++)
 		mem[i] = 0;
@@ -133,6 +139,22 @@ void InitializeSystem()
 	/* Assigns value `0` to Each Individual Hardware Variable */
 	mar = mbr = clock = ir = psr = pc = sp = 0;
 
+	// Create user free list using the free block address and size given in the class
+	// This part has errors. "Next user free block pointer", "second location in free block"
+	UserFreeList = 0;
+	NextPtr = EndOfList;
+	mem[NextPtr + 1] = 3999;
+
+	// Create OS free list using the free block address and size given in the class
+	// This part has errors. "Next OS free block pointer", "second location in free block"
+	OSFreeList = 4000;
+	NextPtr = EndOfList;
+	mem[NextPtr + 1] = 6999;
+
+
+	// Call Create Process function passing Null Process executing file and priority zero as arguments
+	CreateProcess(filename, 0);
+	return;
 }
 
 /*******************************************************************************
@@ -634,12 +656,15 @@ long SystemCall(long SystemCallID)
 	switch (SystemCallID) {
 		case 1:                 //process_create
 			//status = CreateProcess(filename, priority);
+			printf("System call not implemented");
 			break;
 		case 2:                 //process_delete
 			// not needed
+			printf("System call not implemented");
 			break;
 		case 3:                 //process_inquiry
 			// not needed
+			printf("System call not implemented");
 			break;
 		case 4:                 //mem_alloc
 			//Dynamic memory allocation: Allocate user free memory system call
@@ -651,9 +676,11 @@ long SystemCall(long SystemCallID)
 			break;
 		case 6:                 //msg_send
 			// not needed
+			printf("System call not implemented");
 			break;
 		case 7:                 //msg_recieve
 			// not needed
+			printf("System call not implemented");
 			break;
 		case 8:                 //io_getc
 			IOGetCSystemCall(); // PARAMETERS
@@ -663,12 +690,14 @@ long SystemCall(long SystemCallID)
 			break;
 		case 10:                //time_get
 			// not needed
+			printf("System call not implemented");
 			break;
 		case 11:                //time_set
 			// not needed
+			printf("System call not implemented");
 			break;
 		default:
-
+			printf("Invalid system call ID");
 			break;
 	}
 	psr = MACHINE_MODE_USER;		// Restore to User Mode
@@ -1675,6 +1704,7 @@ long InsertIntoWQ(long *PCBptr)
  *
  * Function Return Value: N/A
  *
+ * Initial implementation by Douglas Perkins
  ******************************************************************************/
 
 void CheckAndProcessInterrupt()
@@ -1703,7 +1733,8 @@ void CheckAndProcessInterrupt()
 			break;
 
 		case 2: // shutdown system
-			//ISRshutdownSystem();
+			ISRshutdownSystem();
+			SysShutdownStatus = 1;
 			break;
 
 		case 3: // input operation completion (io_getc)
@@ -1734,7 +1765,8 @@ void CheckAndProcessInterrupt()
  * 		1. N/A
  *
  * Function Return Value
- * //
+ * 
+ * Initial implementation by Douglas Perkins
  ******************************************************************************/
 
 void ISRrunProgramInterrupt()
@@ -1765,6 +1797,8 @@ void ISRrunProgramInterrupt()
  * Output Parameters: N/A
  * 
  * Function Return Value: N/A
+ * 
+ * Initial implementation by Douglas Perkins
  ******************************************************************************/
 
 void ISRinputCompletionInterrupt()
@@ -1869,6 +1903,8 @@ void ISRinputCompletionInterrupt()
  * Output Parameters: N/A
  *
  * Function Return Value: N/A
+ * 
+ * Initial implementation by Douglas Perkins
  ******************************************************************************/
 
 void ISRoutputCompletionInterrupt()
@@ -1977,6 +2013,8 @@ void ISRoutputCompletionInterrupt()
  * Output Parameters: N/A
  * 
  * Function Return Value: N/A
+ * 
+ * Initial implementation by Douglas Perkins
  ******************************************************************************/
 long SearchAndRemovePCBfromWQ(long ProcessID){
 
@@ -2019,6 +2057,8 @@ long SearchAndRemovePCBfromWQ(long ProcessID){
  * Output Parameters: TODO
  *
  * Function Return Value: TODO
+ * 
+ * Initial implementation by Douglas Perkins
  ******************************************************************************/
 void ISRshutdownSystem(){
 
@@ -2053,7 +2093,8 @@ void ISRshutdownSystem(){
  * 		1. R0 = return code, always OK.
  *
  * Function Return Value
- * //
+ * 
+ * Initial implementation by Douglas Perkins
  ******************************************************************************/
 
 long IOGetCSystemCall(char R1, int *R0)
@@ -2074,7 +2115,8 @@ long IOGetCSystemCall(char R1, int *R0)
  * 		1. R0 = return code, always OK
  *
  * Function Return Value
- * //
+ * 
+ * Initial implementation by Douglas Perkins
  ******************************************************************************/
 
 long IOPutCSystemCall(char R1, int *R0)

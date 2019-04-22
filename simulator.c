@@ -1,4 +1,5 @@
 #include <stdio.h>
+		break;
 #include <string.h>
 
 /*** VIRTUAL SYSTEM PARAMETERS ***/
@@ -1484,23 +1485,25 @@ void InitializePCB(long PCBptr)
 
 void PrintPCB(long PCBptr)
 {
-	printf("PCB address = %d",  PCBptr);
-	printf("Next PCB Ptr = %d", mem[PCBptr +NextPtr]);
-	printf("PID = %d", mem[PCBptr + PCB_Pid]);
-	printf("State = %d", mem[PCBptr + PCB_State]);
-	printf("PC = %d", mem[PCBptr + PCB_PC]);
-	printf("SP = %d", mem[PCBptr + PCB_SP]);
-	printf("Priority = %d", mem[PCBptr + PCB_Priority]);
-	printf("Stack Info: start address = %d", mem[PCBptr + PCB_StackStartAddr]);
-	printf("Size = %d", mem[PCBptr + PCB_StackSize]);
-	printf("GPR 0 = %d", mem[PCBptr + PCB_GPR0]);
-	printf("GPR 1 = %d", mem[PCBptr + PCB_GPR1]);
-	printf("GPR 2 = %d", mem[PCBptr + PCB_GPR2]);
-	printf("GPR 3 = %d", mem[PCBptr + PCB_GPR3]);
-	printf("GPR 4 = %d", mem[PCBptr + PCB_GPR4]);
-	printf("GPR 5 = %d", mem[PCBptr + PCB_GPR5]);
-	printf("GPR 6 = %d", mem[PCBptr + PCB_GPR6]);
-	printf("GPR 7 = %d", mem[PCBptr + PCB_GPR7]);
+	printf("PCB address = %d\n",  PCBptr);
+	printf("Next PCB Ptr = %d\n", mem[PCBptr +NextPtr]);
+	printf("PID = %d\n", mem[PCBptr + PCB_Pid]);
+	printf("State = %d\n", mem[PCBptr + PCB_State]);
+	printf("PC = %d\n", mem[PCBptr + PCB_PC]);
+	printf("SP = %d\n", mem[PCBptr + PCB_SP]);
+	printf("Priority = %d\n", mem[PCBptr + PCB_Priority]);
+	printf("Stack Info: start address = %d\n", mem[PCBptr + PCB_StackStartAddr]);
+	printf("Size = %d\n", mem[PCBptr + PCB_StackSize]);
+	printf("GPR 0 = %d\n", mem[PCBptr + PCB_GPR0]);
+	printf("GPR 1 = %d\n", mem[PCBptr + PCB_GPR1]);
+	printf("GPR 2 = %d\n", mem[PCBptr + PCB_GPR2]);
+	printf("GPR 3 = %d\n", mem[PCBptr + PCB_GPR3]);
+	printf("GPR 4 = %d\n", mem[PCBptr + PCB_GPR4]);
+	printf("GPR 5 = %d\n", mem[PCBptr + PCB_GPR5]);
+	printf("GPR 6 = %d\n", mem[PCBptr + PCB_GPR6]);
+	printf("GPR 7 = %d\n", mem[PCBptr + PCB_GPR7]);
+
+	return;
 
 }  // end of PrintPCB() function
 
@@ -1571,7 +1574,7 @@ long SelectProcessFromRQ()
 	// Set next point to EOL in the PCB
 	// Set Next PCBfield in the given PCB to End of List
 
-	mem[PCBptr + NextPtr];
+	mem[PCBptr + NextPtr] = EndOfList;
 
 	return(PCBptr);
 } //end of SelectProcessFromRQ
@@ -1859,10 +1862,11 @@ void CheckAndProcessInterrupt()
  *
  * Description: Read filename and create process.
  *
- * Input Parameters: N/A
+ * Input Parameters:
+ * - None
  *
  * Output Parameters
- * 		1. N/A
+ * - None
  *
  * Function Return Value
  *
@@ -1876,6 +1880,7 @@ void ISRrunProgramInterrupt()
 	// Prompt and read filename
 	printf("Input filename: ");
 	fgets(filename, 30, stdin);
+	strtok(filename, "\n");
 
 	// Call Create Process passing filename and Default Priority as arguments
 	CreateProcess(filename, DEFAULT_PRIORITY);

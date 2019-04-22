@@ -1,1 +1,13 @@
-
+Count1,Long,5
+Count2,Long,5
+Start,Move,"R2,9"
+SysC1,SystemCall,4
+Loop1,SystemCall,8
+,Subtract,"Count1,1"
+,BranchOnPlus,"Count1,Loop1"
+Loop2,SystemCall,9
+,Subtract,"Count2,1"
+,BranchOnPlus,"Count2,Loop2"
+SysC2,SystemCall,5
+,Halt,
+,End,Start

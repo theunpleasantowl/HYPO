@@ -1,5 +1,4 @@
 #include <stdio.h>
-		break;
 #include <string.h>
 
 /*** VIRTUAL SYSTEM PARAMETERS ***/

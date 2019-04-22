@@ -647,7 +647,6 @@ long CPU()
  *      ErrorInvalidPCValue		-Direct Mode PC out of bounds
  ******************************************************************************/
 
-//TODO: Implement Function
 long SystemCall(long SystemCallID)
 {
 	psr = MACHINE_MODE_OS;		// Set system mode to OS mode
@@ -875,9 +874,10 @@ void DumpMemory(
 }
 
 /*******************************************************************************
- * Function: CreateProcess
+ * Function: CreateProcess [UNUSED]
  *
- * Description: [UNUSED]
+ * Description: Creates a PCB in Dyanamic Memory and populates the PCB indecies
+ * with the values.
  *
  * Input Parameters
  *      String (pointer)		Name of the file associated with the process
@@ -900,12 +900,12 @@ long CreateProcess(char* filename, long priority)
 
 	//// Load the program
 	//if (AbsoluteLoader(filename) == OK)
-	//	pcb->pc = pc; 		// Store PC value in the PCB of the process
+	//	mem[PCBptr + 20] = pc; 		// Store PC value in the PCB of the process
 	//else
 	//	return ErrorFileOpen;
 
 	//// Allocate stack space from user free list
-	//pcb->ptr = StackSize; 		// Set ptr = Allocate User Memory of size StackSize;
+	//mem[PCBptr + 5] = StackSize; 		// Set ptr = Allocate User Memory of size StackSize;
 	//if (ptr < 0)			// Check for error
 	//{  				// User memory allocation failed
 	//	FreeOSMemory(PCBptr, SIZE);
@@ -913,14 +913,14 @@ long CreateProcess(char* filename, long priority)
 	//}
 
 	//// Store stack information in the PCB . SP, ptr, and size
-	//pcb->sp = ptr + SIZE;		// empty stack is high address, full is low address
-	//pcb->StartAddress = ptr;
-	//pcb->StackSize = SIZE;
-	//pcb->priority = DEFAULT_PRIORITY;	// Set priority
+	//mem[PCBptr + 19] = ptr + SIZE;		// empty stack is high address, full is low address
+	//mem[PCBptr + 4] = ptr + SIZE;
+	//mem[PCBptr + 5] = ptr + SIZE;
+	//mem[PCBptr + 3] = DEFAULT_PRIORITY;	// Set priority
 
 	//DumpMemory("PCB Created", ptr, SIZE);				// Dump PCB stack
 
-	////TODO: print PCB
+	//PrintPCB(pcb):
 
 	//// Insert PCB into Ready Queue according to the scheduling algorithm
 	//InsertIntoRQ(PCBptr);

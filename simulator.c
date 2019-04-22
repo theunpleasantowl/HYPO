@@ -1820,7 +1820,7 @@ void CheckAndProcessInterrupt()
 
 	printf("Input interrupt ID: ");
 	scanf("%d", &InterruptID);
-	printf("Interrupt read: %d", InterruptID);
+	printf("Interrupt read: %d\n", InterruptID);
 
 	// Process interrupt
 	switch(InterruptID)

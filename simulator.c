@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
 		else if (ExecutionCompletionStatus = SIMULATOR_STATUS_HALTED | ExecutionCompletionStatus < 0){
 			TerminateProcess(PCBPtr);
 			PCBPtr = EndOfList;
-			 
+
 		}
 		else if (ExecutionCompletionStatus = StartOfInput){
 			mem[PCBPtr + PCB_Reason] = InputCompletion;
@@ -370,6 +370,8 @@ int AbsoluteLoader(char* filename)
  *      ErrorInvalidOpcode		-Opcode not valid
  *      ErrorStackOverflow		-Attempted to allocate beyond stack
  *      ErrorStackUnderflow		-Attempted to allocate beneath stack
+ *
+ * Initial Implementation done by Ykaro Rocha
  ******************************************************************************/
 
 long CPU()
@@ -716,6 +718,8 @@ long CPU()
  *      ErrorInvalidAddress		-Oprand address not valid
  *      ErrorInvalidMode		-Mode not correct
  *      ErrorInvalidPCValue		-Direct Mode PC out of bounds
+ *
+ * Initial Implementation done by Ykaro Rocha
  ******************************************************************************/
 
 long SystemCall(long SystemCallID)
@@ -755,7 +759,7 @@ long SystemCall(long SystemCallID)
 			printf("System call not implemented");
 			break;
 		case 8:                 //io_getc
-			status = IOGetCSystemCall(); 
+			status = IOGetCSystemCall();
 			break;
 		case 9:                 //io_putc
 			status = IOPutCSystemCall();
@@ -959,6 +963,8 @@ void DumpMemory(
  *
  * Function Return Value
  *      None
+ *
+ * Initial Implementation done by Ykaro Rocha
  ******************************************************************************/
 long CreateProcess(char* filename, long priority)
 {
@@ -1001,16 +1007,19 @@ long CreateProcess(char* filename, long priority)
 /*******************************************************************************
  * Function: TerminateProcess
  *
- * Description: //TODO
+ * Description: Deallocates the reference of the PCB from the lists in Dynamic
+ * Memory and OS Memory
  *
  * Input Parameters
- * //TODO
+ * 	- PCBptr			Address of the PCB that is to be deallocated
  *
  * Output Parameters
- * //TODO
+ * 	- None
  *
  * Function Return Value
- * //TODO
+ * 	- None
+ *
+ * Initial Implementation done by Ykaro Rocha
  ******************************************************************************/
 
 void TerminateProcess(long PCBptr)
@@ -1044,6 +1053,8 @@ void TerminateProcess(long PCBptr)
  *
  * Function Return Value
  *      None
+ *
+ * Initial Implementation done by Ykaro Rocha
  ******************************************************************************/
 
 long AllocateOSMemory(long RequestedSize)  // return value contains address or error
@@ -1051,12 +1062,12 @@ long AllocateOSMemory(long RequestedSize)  // return value contains address or e
 	// Allocate memory from OS free space, which is organized as link
 	if (OSFreeList == EndOfList)
 	{
-		//TODO display no free OS memory error;
+		printf("ERROR: No Free OS Memory");
 		return(ErrorNoFreeMemory);   // ErrorNoFreeMemory is constant set to < 0
 	}
 	if (RequestedSize < 0)
 	{
-		//TODO display invalid size error;
+		printf("ERROR: Invalide Memory Size");
 		return(ErrorInvalidMemorySize);  // ErrorInvalidMemorySize is constant < 0
 	}
 	if (RequestedSize == 1)
@@ -1108,7 +1119,7 @@ long AllocateOSMemory(long RequestedSize)  // return value contains address or e
 		}
 	} // end of while CurrentPtr loop
 
-	//TODO: display no free OS memory error;
+	printf("ERROR: No Free OS Memory");
 	return(ErrorNoFreeMemory);   // ErrorNoFreeMemory is constant set to < 0
 }
 
@@ -1116,16 +1127,21 @@ long AllocateOSMemory(long RequestedSize)  // return value contains address or e
 /*******************************************************************************
  * Function: FreeOSMemory
  *
- * Description: //TODO
+ * Description: Sets the allocated free list to a new value such that the
+ * system expands the block of memory in free list. The memory that is no
+ * longer allocated is considered to be free memory
  *
  * Input Parameters
- * //TODO
+ * 	- *ptr			A ptr to the block of memory considered 'free'
+ * 				by the system
+ * 	- size			Size by which to increase the free list
  *
  * Output Parameters
- * //TODO
+ * 	- None
  *
  * Function Return Value
- * //TODO
+ * 	- OK
+ * 	- ErrorInvalidAddress
  ******************************************************************************/
 
 long FreeOSMemory(long *ptr, long size)
@@ -1151,6 +1167,8 @@ long FreeOSMemory(long *ptr, long size)
 	mem[*ptr] = OSFreeList;
 	mem[*ptr + 1] = size;
 	OSFreeList = *ptr;
+
+	return OK;
 }
 
 /*******************************************************************************
@@ -1526,16 +1544,16 @@ long PrintQueue(long Qptr)
 /*******************************************************************************
  * Function: SelectProcessFromRQ
  *
- * Description: //TODO
+ * Description: Selects the process that is at the front of the Ready Queue.
  *
  * Input Parameters
- * //TODO
+ * - None
  *
  * Output Parameters
- * //TODO
+ * - PCBptr			The ptr to the PCB which is to be run
  *
  * Function Return Value
- * //TODO
+ * - None
  ******************************************************************************/
 
 long SelectProcessFromRQ()
@@ -1667,16 +1685,18 @@ void Dispatcher(long PCBptr)
 /*******************************************************************************
  * Function: InsertIntoRQ
  *
- * Description: //TODO
+ * Description: Inserts a Process into the Ready Queue at some position
+ * dependent on it's priority.
  *
  * Input Parameters
- * //TODO
+ * - *PCBptr			Pointer to the PCB that is to be inserted
  *
  * Output Parameters
- * //TODO
+ * - None
  *
  * Function Return Value
- * //TODO
+ * 	OK
+ * 	ErrorInvalidAddress
  ******************************************************************************/
 
 long InsertIntoRQ(long *PCBptr)
@@ -1738,16 +1758,19 @@ long InsertIntoRQ(long *PCBptr)
 /*******************************************************************************
  * Function: InsertIntoWQ
  *
- * Description: //TODO
+ * Description: Inserts a Process into the Waiting Queue. The Waiting Queue is
+ * not sorted by priority
  *
  * Input Parameters
- * //TODO
+ * - *PCBptr			Pointer to the PCB that is to be inserted
  *
  * Output Parameters
- * //TODO
+ * - None
  *
  * Function Return Value
- * //TODO
+ * 	OK
+ * 	ErrorInvalidAddress
+ *
  ******************************************************************************/
 
 long InsertIntoWQ(long *PCBptr)
@@ -2127,13 +2150,16 @@ long SearchAndRemovePCBfromWQ(long ProcessID){
 /*******************************************************************************
  * Function: ISRshutdownSystem
  *
- * Description: TODO
+ * Description: Terminate all Processes in RQ so that the system can shut down
  *
- * Input Parameters: TODO
+ * Input Parameters:
+ * 	- None
  *
- * Output Parameters: TODO
+ * Output Parameters:
+ * 	- None
  *
- * Function Return Value: TODO
+ * Function Return Value:
+ * 	- None
  *
  * Initial implementation by Douglas Perkins
  ******************************************************************************/

@@ -149,15 +149,15 @@ void InitializeSystem()
 
 	// Create user free list using the free block address and size given in the class
 	// This part has errors. "Next user free block pointer", "second location in free block"
-	UserFreeList = 0;
+	UserFreeList = MAX_USER_MEMORY + 1;
 	NextPtr = EndOfList;
-	mem[NextPtr + 1] = 3999;
+	mem[NextPtr + 1] = MAX_HEAP_MEMORY;
 
 	// Create OS free list using the free block address and size given in the class
 	// This part has errors. "Next OS free block pointer", "second location in free block"
-	OSFreeList = 4000;
+	OSFreeList = MAX_HEAP_MEMORY + 1;
 	NextPtr = EndOfList;
-	mem[NextPtr + 1] = 6999;
+	mem[NextPtr + 1] = MAX_OS_MEMORY;
 
 
 	// Call Create Process function passing Null Process executing file and priority zero as arguments
@@ -203,6 +203,8 @@ int main(int argc, char *argv[])
 
 	// Ready System and Load File
 	InitializeSystem();
+	pc = AbsoluteLoader(filename);
+
 
 	while (SysShutdownStatus != 1){
 
@@ -235,22 +237,22 @@ int main(int argc, char *argv[])
 		// Check return status
 		if(ExecutionCompletionStatus = TimeSliceExpired){
 			SaveContext(PCBPtr); // running process is losing CPU
-			InsertIntoRQ(PCBPtr);
+			InsertIntoRQ(&PCBPtr);
 			PCBPtr = EndOfList;
 		}
 		else if (ExecutionCompletionStatus = SIMULATOR_STATUS_HALTED | ExecutionCompletionStatus < 0){
-			// TerminateProcess(PCBPtr);
+			TerminateProcess(PCBPtr);
 			PCBPtr = EndOfList;
 			 
 		}
 		else if (ExecutionCompletionStatus = StartOfInput){
 			mem[PCBPtr + PCB_Reason] = InputCompletion;
-			InsertIntoWQ(PCBPtr);
+			InsertIntoWQ(&PCBPtr);
 			PCBPtr = EndOfList;
 		}
 		else if (ExecutionCompletionStatus = StartOfOutput){
 			mem[PCBPtr + PCB_Reason] = OutputCompletion;
-			InsertIntoWQ(PCBPtr);
+			InsertIntoWQ(&PCBPtr);
 			PCBPtr = EndOfList;
 		}
 		else{
@@ -258,14 +260,9 @@ int main(int argc, char *argv[])
 		}
 	}
 
-
 		// Print OS is shutting down message
 		printf("OS shutting down");
 		return(ExecutionCompletionStatus); // Terminate operating system
-
-	}
-
-	pc = AbsoluteLoader(filename);
 
     /* // From Homework 1
 	// Check for Negative Error Code
@@ -282,7 +279,8 @@ int main(int argc, char *argv[])
 	return(ExecutionCompletionStatus);
     */
 
-}
+	}
+
 
 /*******************************************************************************
  * Function: AbsoluteLoader
@@ -758,10 +756,10 @@ long SystemCall(long SystemCallID)
 			printf("System call not implemented");
 			break;
 		case 8:                 //io_getc
-			status = IOGetCSystemCall(); // PARAMETERS
+			status = IOGetCSystemCall(); 
 			break;
 		case 9:                 //io_putc
-			status = IOPutCSystemCall(); // PARAMETERS
+			status = IOPutCSystemCall();
 			break;
 		case 10:                //time_get
 			// not needed
@@ -2179,7 +2177,7 @@ void ISRshutdownSystem(){
 long IOGetCSystemCall()
 {
 	gpr[1] = getchar();
-	gpr[0] = OK;
+	gpr[0] = StartOfInput;
 	return gpr[1];
 }
 
@@ -2202,7 +2200,7 @@ long IOPutCSystemCall()
 {
 	//printf("%d\n", R1);
 	putchar(gpr[1]);
-	gpr[0] = OK;
+	gpr[0] = StartOfOutput;
 	return gpr[0];
 }
 

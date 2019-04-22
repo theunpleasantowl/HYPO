@@ -611,7 +611,8 @@ long CPU()
 				TimeLeft -= 2;
 				break;
 			case 12:                //system call
-				if (MAX_USER_MEMORY < sp < MAX_HEAP_MEMORY) {
+				status = FetchOperand(op1mode, op1gpr, &op1addr, &op1val);
+				if (status < 0) {
 					printf("ERROR: Systemcall to Invalid Address\n");
 					return ErrorRuntime;
 				}
@@ -943,9 +944,13 @@ long CreateProcess(char* filename, long priority)
 
 void TerminateProcess(long PCBptr)
 {
-	// Return stack memory using stack start address and stack size in the given PCB
+	printf("Function not Implemented on account of Create Process Function not being implemented");
+	//// Return stack memory using stack start address and stack size in the given PCB
+	//long StackSize = PCBptr;
+	//FreeUserMemory(PCBptr, mem[PCBptr + 5]);
 
-	// Return PCB memory using the PCBptr
+	//// Return PCB memory using the PCBptr
+	//FreeOSMemory(&PCBptr, mem[PCBptr + 5]);			// Free Process from PCB Stack
 
 	return;
 

@@ -968,7 +968,7 @@ void DumpMemory(
  ******************************************************************************/
 long CreateProcess(char* filename, long priority)
 {
-	printf ("Create Process Function is not Implemented");
+	printf ("Create Process Function is not Implemented\n");
 	//// Allocate space for Process Control Block
 	//long *PCBptr = &EndOfList; //TODO: Wrong behavior,
 

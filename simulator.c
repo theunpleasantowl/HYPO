@@ -1756,17 +1756,16 @@ void ISRrunProgramInterrupt()
  * Function: Input Completion Interrupt
  *
  * Description: Read PID of the process completing the io_getc operation and
- * read one character from the keyboard (input device). Store the character in
- * the GPR in the PCB of the process.
- *
+ * 				read one character from the keyboard (input device). Store the
+ * 				character in the GPR in the PCB of the process.
+ * 
  * Input Parameters: N/A
- *
+ * 
  * Output Parameters: N/A
- *
+ * 
  * Function Return Value: N/A
  ******************************************************************************/
 
-// This is definitely broken right now
 void ISRinputCompletionInterrupt()
 {
 
@@ -1782,18 +1781,18 @@ void ISRinputCompletionInterrupt()
 
 	// Search WQ to find the PCB having the given PID
 	while(currentPCBptr != EndOfList){
-		if(mem[currentPCBptr + NextPtr] == ProcessID){
+		if(mem[*currentPCBptr + NextPtr] == ProcessID){ // Try to find match in WQ
 			// match found, remove from WQ
 			if (previousPCBptr == EndOfList){
 				// first PCB
-				WQ = mem[currentPCBptr + NextPtr];
+				WQ = mem[*currentPCBptr + NextPtr];
 			}
 			else
 			{
 				// not first PCB
-				mem[previousPCBptr + NextPtr] = mem[currentPCBptr + NextPtr];
+				mem[*previousPCBptr + NextPtr] = mem[*currentPCBptr + NextPtr];
 			}
-			mem[currentPCBptr + NextPtr] = EndOfList;
+			mem[*currentPCBptr + NextPtr] = EndOfList;
 
 			// This part of the code might not fit here, the pseudocode is hurting my brain.
 			// Read one character from standard input device keyboard
@@ -1801,41 +1800,68 @@ void ISRinputCompletionInterrupt()
 			GPRChar = getchar();
 
 			// Store the character in the GPR in the PCB, type cast char->long
-			mem[currentPCBptr + PCB_GPR0] = (long)GPRChar;
+			mem[*currentPCBptr + PCB_GPR0] = long(GPRChar);
 
 			// Set the process state to Ready in the PCB
-			mem[currentPCBptr + PCB_State] = "Ready"; // TODO: FIX
+			mem[*currentPCBptr + PCB_State] = "Ready";
 
 			// Insert PCB into RQ
-			InsertIntoRQ(&currentPCBptr);
-			//return(currentPCBptr); 			// TODO: Function is void but returns a value...?
+			InsertIntoRQ(currentPCBptr);
+			//return;
 		}
-		else {
-			// If no match is found in WQ, then search RQ
-			currentPCBptr = RQ;
 
-			// Read one character from standard input device keyboard
-			GPRChar = getchar();
+    previousPCBptr = currentPCBptr;
+	currentPCBptr = mem[*currentPCBptr + NextPtr];
+    } // Pretty sure the while needs to end here.
 
-			// Store the character in the GPR in the PCB
-			mem[currentPCBptr + PCB_GPR0] = (long)GPRChar;
-			break;
-		}
-	}
-	previousPCBptr = currentPCBptr;
-	currentPCBptr = mem[currentPCBptr + NextPtr];
+	// Search RQ to find the PCB having the given PID
+	while(currentPCBptr != EndOfList){
+            // If no match is found in WQ, then search RQ
+            currentPCBptr = RQ;
+
+            if(mem[*currentPCBptr + NextPtr] == ProcessID){ // Try to find match in RQ
+                // match found, remove from RQ? Pseudocode doesn't say to remove from RQ.
+                /*
+                if (previousPCBptr == EndOfList){
+                    // first PCB
+                    RQ = mem[*currentPCBptr + NextPtr];
+                }
+                else
+                {
+                    // not first PCB
+                    mem[*previousPCBptr + NextPtr] = mem[*currentPCBptr + NextPtr];
+                }
+                */
+
+                //mem[*currentPCBptr + NextPtr] = EndOfList;
+
+                // This part of the code might not fit here, the pseudocode is hurting my brain.
+                // Read one character from standard input device keyboard
+                printf("Enter a character: ");
+                GPRChar = getchar();
+
+                // Store the character in the GPR in the PCB, type cast char->long
+                mem[*currentPCBptr + PCB_GPR0] = long(GPRChar);
+                // break;
+            }
+            // break;
+
+    previousPCBptr = currentPCBptr;
+	currentPCBptr = mem[*currentPCBptr + NextPtr];
+    }
 
 	// If no matching PCB is found in WQ, and RQ, print invalid PID as an error message.
 	printf("Invalid Process ID");
-	return;
+    return;
 }
+
 
 /*******************************************************************************
  * Function: Output Completion Interrupt
  *
  * Description: Read PID of the process completing the io_putc operation and
- * display one character on the monitor (output device) from the GPR in the PCB
- * of the process
+ * 				display one character on the monitor (output device) from the GPR
+ * 				in the PCB of the process
  *
  * Input Parameters: N/A
  *
@@ -1849,46 +1875,138 @@ void ISRoutputCompletionInterrupt()
 
 	int ProcessID;
 	long currentPCBptr = WQ;
+	char PCBReplacementChar;
+	long previousPCBptr = EndOfList;
+	char GPRChar;
 
 	// Prompt and read PID of the process completing input completion
 	printf("Input PID of the process completing input completion: ");
-	scanf("%d", ProcessID);
+	scanf("%d", &ProcessID);
 
 	// Search WQ to find the PCB having the given PID
-	while (currentPCBptr != EndOfList) {
-		if (mem[currentPCBptr] == ProcessID) {
-			// Remove PCB from the WQ
+	while(currentPCBptr != EndOfList){
+		if(mem[*currentPCBptr + NextPtr] == ProcessID){ // Try to find match in WQ
+			// match found, remove from WQ
+			if (previousPCBptr == EndOfList){
+				// first PCB
+				WQ = mem[*currentPCBptr + NextPtr];
+			}
+			else
+			{
+				// not first PCB
+				mem[*previousPCBptr + NextPtr] = mem[*currentPCBptr + NextPtr];
+			}
+			mem[*currentPCBptr + NextPtr] = EndOfList;
 
+			// This part of the code might not fit here, the pseudocode is hurting my brain.
 			// Read one character from standard input device keyboard
-			// (system call?)
+			//printf("Enter a character: ");
+			//GPRChar = getchar();
 
+			// Print the character in the GPR in the PCB
+			// Cast to char?
+			printf("%c", (char)mem[*currentPCBptr + PCB_GPR0]);
 
 			// Store the character in the GPR in the PCB, type cast char->long
+			// mem[*currentPCBptr + PCB_GPR0] = long(GPRChar);
 
 			// Set the process state to Ready in the PCB
+			mem[*currentPCBptr + PCB_State] = "Ready";
 
 			// Insert PCB into RQ
-
-			break;
-		}
-	}
-
-	// If no match is found in WQ, then search RQ
-	currentPCBptr = RQ;
-	while (currentPCBptr != EndOfList) {
-		if (mem[currentPCBptr] == ProcessID) {
-			// Read one character from standard input device keyboard
-
-			// Store the character in the GPR in the PCB
-
-			break;
+			InsertIntoRQ(currentPCBptr);
+			//return;
 		}
 
-	}
+    previousPCBptr = currentPCBptr;
+	currentPCBptr = mem[*currentPCBptr + NextPtr];
+    } // Pretty sure the while needs to end here.
+
+	// Search RQ to find the PCB having the given PID
+	while(currentPCBptr != EndOfList){
+            // If no match is found in WQ, then search RQ
+            currentPCBptr = RQ;
+
+            if(mem[*currentPCBptr + NextPtr] == ProcessID){ // Try to find match in RQ
+                // match found, remove from RQ? Pseudocode doesn't say to remove from RQ.
+                /*
+                if (previousPCBptr == EndOfList){
+                    // first PCB
+                    RQ = mem[*currentPCBptr + NextPtr];
+                }
+                else
+                {
+                    // not first PCB
+                    mem[*previousPCBptr + NextPtr] = mem[*currentPCBptr + NextPtr];
+                }
+                */
+
+                //mem[*currentPCBptr + NextPtr] = EndOfList;
+
+				// Print the character in the GPR in the PCB
+				printf("%c", (char)mem[*currentPCBptr + PCB_GPR0]);
+
+                // This part of the code might not fit here, the pseudocode is hurting my brain.
+                // Read one character from standard input device keyboard
+                //printf("Enter a character: ");
+                //GPRChar = getchar();
+
+            }
+            // break;
+
+    previousPCBptr = currentPCBptr;
+	currentPCBptr = mem[*currentPCBptr + NextPtr];
+    }
 
 	// If no matching PCB is found in WQ, and RQ, print invalid PID as an error message.
 	printf("Invalid Process ID");
+    return;
 }
+
+
+/*******************************************************************************
+ * Function: SearchAndRemovePCBfromWQ
+ *
+ * Description: Search the WQ for the matching PID.
+ * 				When a match is found remove it from WQ and return PCB pointer.
+ * 				If no match is found, return invalid PID error code.
+ * 
+ * Input Parameters: N/A
+ * 
+ * Output Parameters: N/A
+ * 
+ * Function Return Value: N/A
+ ******************************************************************************/
+long SearchAndRemovePCBfromWQ(long ProcessID){
+
+	long currentPCBptr = WQ;
+	long previousPCBptr = EndOfList;
+
+	// Search WQ for a PCB that has the given PID
+	// If a match is found, remove it from WQ and return the PCB pointer.
+	while(currentPCBptr != EndOfList){
+		if(mem[*currentPCBptr + NextPtr] == ProcessID){
+			// match found, remove from WQ
+			if (previousPCBptr == EndOfList){
+				// first PCB
+				WQ = mem[*currentPCBptr + NextPtr];
+			}
+			else
+			{
+				// not first PCB
+				mem[*previousPCBptr + NextPtr] = mem[*currentPCBptr + NextPtr];
+			}
+			mem[*currentPCBptr + NextPtr] = EndOfList;
+			return(currentPCBptr);
+		}
+		previousPCBptr = currentPCBptr;
+		currentPCBptr = mem[*currentPCBptr + NextPtr];
+	}
+
+	printf("Process ID not found.");
+	return(EndOfList);
+}
+
 
 /*******************************************************************************
  * Function: ISRshutdownSystem

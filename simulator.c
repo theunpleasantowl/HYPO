@@ -977,12 +977,12 @@ long CreateProcess(char* filename, long priority)
 
 	//// Load the program
 	//if (AbsoluteLoader(filename) == OK)
-	//	mem[PCBptr + 20] = pc; 		// Store PC value in the PCB of the process
+	//	mem[PCBptr + PCB_PC] = pc; 		// Store PC value in the PCB of the process
 	//else
 	//	return ErrorFileOpen;
 
 	//// Allocate stack space from user free list
-	//mem[PCBptr + 5] = StackSize; 		// Set ptr = Allocate User Memory of size StackSize;
+	//mem[PCBptr + PCB_StackSize] = StackSize; 		// Set ptr = Allocate User Memory of size StackSize;
 	//if (ptr < 0)			// Check for error
 	//{  				// User memory allocation failed
 	//	FreeOSMemory(PCBptr, SIZE);
@@ -990,10 +990,10 @@ long CreateProcess(char* filename, long priority)
 	//}
 
 	//// Store stack information in the PCB . SP, ptr, and size
-	//mem[PCBptr + 19] = ptr + SIZE;		// empty stack is high address, full is low address
-	//mem[PCBptr + 4] = ptr + SIZE;
-	//mem[PCBptr + 5] = ptr + SIZE;
-	//mem[PCBptr + 3] = DEFAULT_PRIORITY;	// Set priority
+	//mem[PCBptr + PCB_SP] = ptr + SIZE;		// empty stack is high address, full is low address
+	//mem[PCBptr + PCB_Priority] = ptr + SIZE;
+	//mem[PCBptr + PCB_StackSize] = ptr + SIZE;
+	//mem[PCBptr + PCB_Reason] = DEFAULT_PRIORITY;	// Set priority
 
 	//DumpMemory("PCB Created", ptr, SIZE);				// Dump PCB stack
 

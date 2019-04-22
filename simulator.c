@@ -51,10 +51,11 @@ long OSFreeList, UserFreeList, RQ, WQ;
 
 long ProcessID = 1;
 
-/*** PCB components ***/
 const int Ready = 1;
 const int Running = 2;
 const int Waiting = 3;
+
+/*** PCB ***/
 const int PCBsize = 22;
 const int NextPtr = 0;
 const int PCB_Pid = 1;
@@ -635,10 +636,10 @@ long SystemCall(long SystemCallID)
 			//status = CreateProcess(filename, priority);
 			break;
 		case 2:                 //process_delete
-
+			// not needed
 			break;
 		case 3:                 //process_inquiry
-
+			// not needed
 			break;
 		case 4:                 //mem_alloc
 			//Dynamic memory allocation: Allocate user free memory system call
@@ -649,22 +650,22 @@ long SystemCall(long SystemCallID)
 			MemFreeSystemCall();
 			break;
 		case 6:                 //msg_send
-
+			// not needed
 			break;
 		case 7:                 //msg_recieve
-
+			// not needed
 			break;
 		case 8:                 //io_getc
-
+			IOGetCSystemCall(); // PARAMETERS
 			break;
 		case 9:                 //io_putc
-
+			IOPutCSystemCall(); // PARAMETERS
 			break;
 		case 10:                //time_get
-
+			// not needed
 			break;
 		case 11:                //time_set
-
+			// not needed
 			break;
 		default:
 

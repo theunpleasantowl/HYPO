@@ -260,15 +260,15 @@ int main(int argc, char *argv[])
 		}
 	}
 
-		// Print OS is shutting down message
-		printf("OS shutting down");
-		return(ExecutionCompletionStatus); // Terminate operating system
+	// Print OS is shutting down message
+	printf("OS shutting down");
+	return(ExecutionCompletionStatus); // Terminate operating system
 
-    /* // From Homework 1
+	/* // From Homework 1
 	// Check for Negative Error Code
 	if (pc < 0) {
-		printf("FILE ERROR: %d\n", pc);
-		return pc;
+	printf("FILE ERROR: %d\n", pc);
+	return pc;
 	}
 
 	//Dump Memory, Execute, and Dump Memory
@@ -277,9 +277,9 @@ int main(int argc, char *argv[])
 	printf("Execution Status: %d\n", ExecutionCompletionStatus);
 	DumpMemory("Program Execution Stopped System", 0, 99);
 	return(ExecutionCompletionStatus);
-    */
+	*/
 
-	}
+}
 
 
 /*******************************************************************************
@@ -1176,7 +1176,7 @@ long FreeOSMemory(long *ptr, long size)
  *
  * Description:
  *      This function is used to specify an amount of space in the user
-        memory to be allocated based on the requested size
+ memory to be allocated based on the requested size
  *
  * Input Parameters
  *      RequestedSize - long value specfied by the user,
@@ -1949,49 +1949,49 @@ void ISRinputCompletionInterrupt()
 			//return;
 		}
 
-    previousPCBptr = currentPCBptr;
-	currentPCBptr = mem[currentPCBptr + NextPtr];
-    } // Pretty sure the while needs to end here.
+		previousPCBptr = currentPCBptr;
+		currentPCBptr = mem[currentPCBptr + NextPtr];
+	} // Pretty sure the while needs to end here.
 
 	// Search RQ to find the PCB having the given PID
 	while(currentPCBptr != EndOfList){
-            // If no match is found in WQ, then search RQ
-            currentPCBptr = RQ;
+		// If no match is found in WQ, then search RQ
+		currentPCBptr = RQ;
 
-            if(mem[currentPCBptr + NextPtr] == ProcessID){ // Try to find match in RQ
-                // match found, remove from RQ? Pseudocode doesn't say to remove from RQ.
-                /*
-                if (previousPCBptr == EndOfList){
-                    // first PCB
-                    RQ = mem[*currentPCBptr + NextPtr];
-                }
-                else
-                {
-                    // not first PCB
-                    mem[*previousPCBptr + NextPtr] = mem[*currentPCBptr + NextPtr];
-                }
-                */
+		if(mem[currentPCBptr + NextPtr] == ProcessID){ // Try to find match in RQ
+			// match found, remove from RQ? Pseudocode doesn't say to remove from RQ.
+			/*
+			   if (previousPCBptr == EndOfList){
+			// first PCB
+			RQ = mem[*currentPCBptr + NextPtr];
+			}
+			else
+			{
+			// not first PCB
+			mem[*previousPCBptr + NextPtr] = mem[*currentPCBptr + NextPtr];
+			}
+			*/
 
-                //mem[*currentPCBptr + NextPtr] = EndOfList;
+			//mem[*currentPCBptr + NextPtr] = EndOfList;
 
-                // This part of the code might not fit here, the pseudocode is hurting my brain.
-                // Read one character from standard input device keyboard
-                printf("Enter a character: ");
-                GPRChar = getchar();
+			// This part of the code might not fit here, the pseudocode is hurting my brain.
+			// Read one character from standard input device keyboard
+			printf("Enter a character: ");
+			GPRChar = getchar();
 
-                // Store the character in the GPR in the PCB, type cast char->long
-                mem[currentPCBptr + PCB_GPR0] = GPRChar;
-                // break;
-            }
-            // break;
+			// Store the character in the GPR in the PCB, type cast char->long
+			mem[currentPCBptr + PCB_GPR0] = GPRChar;
+			// break;
+		}
+		// break;
 
-    previousPCBptr = currentPCBptr;
-	currentPCBptr = mem[currentPCBptr + NextPtr];
-    }
+		previousPCBptr = currentPCBptr;
+		currentPCBptr = mem[currentPCBptr + NextPtr];
+	}
 
 	// If no matching PCB is found in WQ, and RQ, print invalid PID as an error message.
 	printf("Invalid Process ID");
-    return;
+	return;
 }
 
 
@@ -2059,49 +2059,49 @@ void ISRoutputCompletionInterrupt()
 			//return;
 		}
 
-    previousPCBptr = currentPCBptr;
-	currentPCBptr = mem[currentPCBptr + NextPtr];
-    } // Pretty sure the while needs to end here.
+		previousPCBptr = currentPCBptr;
+		currentPCBptr = mem[currentPCBptr + NextPtr];
+	} // Pretty sure the while needs to end here.
 
 	// Search RQ to find the PCB having the given PID
 	while(currentPCBptr != EndOfList){
-            // If no match is found in WQ, then search RQ
-            currentPCBptr = RQ;
+		// If no match is found in WQ, then search RQ
+		currentPCBptr = RQ;
 
-            if(mem[currentPCBptr + NextPtr] == ProcessID){ // Try to find match in RQ
-                // match found, remove from RQ? Pseudocode doesn't say to remove from RQ.
-                /*
-                if (previousPCBptr == EndOfList){
-                    // first PCB
-                    RQ = mem[*currentPCBptr + NextPtr];
-                }
-                else
-                {
-                    // not first PCB
-                    mem[*previousPCBptr + NextPtr] = mem[*currentPCBptr + NextPtr];
-                }
-                */
+		if(mem[currentPCBptr + NextPtr] == ProcessID){ // Try to find match in RQ
+			// match found, remove from RQ? Pseudocode doesn't say to remove from RQ.
+			/*
+			   if (previousPCBptr == EndOfList){
+			// first PCB
+			RQ = mem[*currentPCBptr + NextPtr];
+			}
+			else
+			{
+			// not first PCB
+			mem[*previousPCBptr + NextPtr] = mem[*currentPCBptr + NextPtr];
+			}
+			*/
 
-                //mem[*currentPCBptr + NextPtr] = EndOfList;
+			//mem[*currentPCBptr + NextPtr] = EndOfList;
 
-				// Print the character in the GPR in the PCB
-				printf("%c", (char)mem[currentPCBptr + PCB_GPR0]);
+			// Print the character in the GPR in the PCB
+			printf("%c", (char)mem[currentPCBptr + PCB_GPR0]);
 
-                // This part of the code might not fit here, the pseudocode is hurting my brain.
-                // Read one character from standard input device keyboard
-                //printf("Enter a character: ");
-                //GPRChar = getchar();
+			// This part of the code might not fit here, the pseudocode is hurting my brain.
+			// Read one character from standard input device keyboard
+			//printf("Enter a character: ");
+			//GPRChar = getchar();
 
-            }
-            // break;
+		}
+		// break;
 
-    previousPCBptr = currentPCBptr;
-	currentPCBptr = mem[currentPCBptr + NextPtr];
-    }
+		previousPCBptr = currentPCBptr;
+		currentPCBptr = mem[currentPCBptr + NextPtr];
+	}
 
 	// If no matching PCB is found in WQ, and RQ, print invalid PID as an error message.
 	printf("Invalid Process ID");
-    return;
+	return;
 }
 
 

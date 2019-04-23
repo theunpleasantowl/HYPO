@@ -97,7 +97,6 @@ long SystemCall(long SystemCallID);
 long FetchOperand(long OpMode, long OpReg, long *OpAddress, long *OpValue);
 void DumpMemory(char* String, long StartAddress, long size);
 long CreateProcess(char *filename, long priority);
-void TerminateProcess(long PCBptr);
 long AllocateOSMemory(long RequestedSize);
 long FreeOSMemory(long *ptr, long size);
 long AllocateUserMemory(long size);
@@ -154,14 +153,13 @@ void InitializeSystem()
 	// This part has errors. "Next user free block pointer", "second location in free block"
 	UserFreeList = MAX_USER_MEMORY + 1;
 	mem[UserFreeList] = EndOfList;
-	//NextPtr = EndOfList;
-	mem[NextPtr + 1] = MAX_HEAP_MEMORY;
+	mem[UserFreeList + 1] = MAX_HEAP_MEMORY - MAX_USER_MEMORY;
 
 	// Create OS free list using the free block address and size given in the class
 	// This part has errors. "Next OS free block pointer", "second location in free block"
 	OSFreeList = MAX_HEAP_MEMORY + 1;
 	mem[OSFreeList] = EndOfList;
-	mem[NextPtr + 1] = MAX_OS_MEMORY;
+	mem[OSFreeList + 1] = MAX_OS_MEMORY - MAX_HEAP_MEMORY;
 
 
 	// Call Create Process function passing Null Process executing file and priority zero as arguments
@@ -740,11 +738,11 @@ long SystemCall(long SystemCallID)
 			break;
 		case 2:                 //process_delete
 			// not needed
-			printf("System call not implemented");
+			printf("System call not implemented\n");
 			break;
 		case 3:                 //process_inquiry
 			// not needed
-			printf("System call not implemented");
+			printf("System call not implemented\n");
 			break;
 		case 4:                 //mem_alloc
 			//Dynamic memory allocation: Allocate user free memory system call
@@ -1035,13 +1033,13 @@ long CreateProcess(char* filename, long priority)
 
 void TerminateProcess(long PCBptr)
 {
-	printf("Function not Implemented on account of Create Process Function not being implemented");
-	//// Return stack memory using stack start address and stack size in the given PCB
-	//long StackSize = PCBptr;
-	//FreeUserMemory(PCBptr, mem[PCBptr + 5]);
+	//printf("Function not Implemented on account of Create Process Function not being implemented\n");
+	// Return stack memory using stack start address and stack size in the given PCB
+	long StackSize = PCBptr;
+	FreeUserMemory(PCBptr, mem[PCBptr + 5]);
 
-	//// Return PCB memory using the PCBptr
-	//FreeOSMemory(&PCBptr, mem[PCBptr + 5]);			// Free Process from PCB Stack
+	// Return PCB memory using the PCBptr
+	FreeOSMemory(&PCBptr, mem[PCBptr + 5]);			// Free Process from PCB Stack
 
 	return;
 

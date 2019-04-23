@@ -962,45 +962,53 @@ void DumpMemory(
  *      None
  *
  * Function Return Value
- *      None
+ * 	OK
+ * 	ErrorInvalidAddress
  *
  * Initial Implementation done by Ykaro Rocha
  ******************************************************************************/
 long CreateProcess(char* filename, long priority)
 {
 	printf ("Create Process Function is not Implemented\n");
-	//// Allocate space for Process Control Block
-	//long *PCBptr = &EndOfList; //TODO: Wrong behavior,
+	// Allocate space for Process Control Block
+	long PCBptr = AllocateOSMemory(PCBsize);
 
-	//// Initialize PCB: Set nextPCBlink to end of list, default priority, Ready state, and PID
-	//InitializePCB(PCBptr); //TODO: FIX names once function implemented
+	//Check for Error
+	if (PCBptr < 0){
+		printf("ERROR: Could not allocate memory");
+		return(ErrorInvalidAddress);
+	}
 
-	//// Load the program
-	//if (AbsoluteLoader(filename) == OK)
-	//	mem[PCBptr + PCB_PC] = pc; 		// Store PC value in the PCB of the process
-	//else
-	//	return ErrorFileOpen;
 
-	//// Allocate stack space from user free list
-	//mem[PCBptr + PCB_StackSize] = StackSize; 		// Set ptr = Allocate User Memory of size StackSize;
-	//if (ptr < 0)			// Check for error
-	//{  				// User memory allocation failed
-	//	FreeOSMemory(PCBptr, SIZE);
-	//	return(ErrorInvalidMemorySize);  		// return error code
-	//}
+	// Initialize PCB: Set nextPCBlink to end of list, default priority, Ready state, and PID
+	InitializePCB(PCBptr); //TODO: FIX names once function implemented
 
-	//// Store stack information in the PCB . SP, ptr, and size
-	//mem[PCBptr + PCB_SP] = ptr + SIZE;		// empty stack is high address, full is low address
-	//mem[PCBptr + PCB_Priority] = ptr + SIZE;
-	//mem[PCBptr + PCB_StackSize] = ptr + SIZE;
-	//mem[PCBptr + PCB_Reason] = DEFAULT_PRIORITY;	// Set priority
+	// Load the program
+	if (AbsoluteLoader(filename) == OK)
+		mem[PCBptr + PCB_PC] = pc; 		// Store PC value in the PCB of the process
+	else
+		return ErrorFileOpen;
 
-	//DumpMemory("PCB Created", ptr, SIZE);				// Dump PCB stack
+	// Allocate stack space from user free list
+	mem[PCBptr + PCB_StackSize] = PCBsize; 		// Set ptr = Allocate User Memory of size StackSize;
+	if (PCBptr < 0)			// Check for error
+	{  				// User memory allocation failed
+		FreeOSMemory(&PCBptr, PCBsize);
+		return(ErrorInvalidMemorySize);  		// return error code
+	}
 
-	//PrintPCB(pcb):
+	// Store stack information in the PCB . SP, ptr, and size
+	mem[PCBptr + PCB_SP] = PCBptr + PCBsize;		// empty stack is high address, full is low address
+	mem[PCBptr + PCB_Priority] = PCBptr + PCBsize;
+	mem[PCBptr + PCB_StackSize] = PCBptr + PCBsize;
+	mem[PCBptr + PCB_Reason] = DEFAULT_PRIORITY;	// Set priority
 
-	//// Insert PCB into Ready Queue according to the scheduling algorithm
-	//InsertIntoRQ(PCBptr);
+	DumpMemory("PCB Created", PCBptr, PCBsize);				// Dump PCB stack
+
+	PrintPCB(PCBptr);
+
+	// Insert PCB into Ready Queue according to the scheduling algorithm
+	InsertIntoRQ(&PCBptr);
 
 	return(OK);
 }

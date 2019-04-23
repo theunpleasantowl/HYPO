@@ -245,6 +245,7 @@ int main(int argc, char *argv[])
 		else if (ExecutionCompletionStatus = SIMULATOR_STATUS_HALTED | ExecutionCompletionStatus < 0){
 			TerminateProcess(PCBPtr);
 			PCBPtr = EndOfList;
+			SysShutdownStatus = 1;
 
 		}
 		else if (ExecutionCompletionStatus = StartOfInput){

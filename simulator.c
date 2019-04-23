@@ -969,7 +969,6 @@ void DumpMemory(
  ******************************************************************************/
 long CreateProcess(char* filename, long priority)
 {
-	printf ("Create Process Function is not Implemented\n");
 	// Allocate space for Process Control Block
 	long PCBptr = AllocateOSMemory(PCBsize);
 
@@ -1223,7 +1222,7 @@ long AllocateUserMemory(long RequestedSize) //return value contains address or E
 		RequestedSize = 2; //minimum allocated memory is 2 locations
 	}
 
-	long CurrentPtr = UserFreeList;
+	long CurrentPtr = OSFreeList;
 	long PreviousPtr = EndOfList;
 	while (CurrentPtr != EndOfList)
 	{

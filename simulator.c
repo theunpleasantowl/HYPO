@@ -234,7 +234,7 @@ int main(int argc, char *argv[])
 		ExecutionCompletionStatus = CPU();
 
 		// Dump dynamic memory area
-		DumpMemory("After executing program", MAX_USER_MEMORY, MAX_HEAP_MEMORY);
+		DumpMemory("After executing program", MAX_USER_MEMORY, MAX_USER_MEMORY);
 
 		// Check return status
 		if(ExecutionCompletionStatus = TimeSliceExpired){

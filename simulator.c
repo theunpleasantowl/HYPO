@@ -68,7 +68,7 @@ const int Running = 2;
 const int Waiting = 3;
 
 /*** PCB ***/
-const int PCBsize = 22;
+const long PCBsize = 22;
 int NextPtr = 0;
 const int PCB_Pid = 1;
 const int PCB_State = 2;
@@ -153,13 +153,14 @@ void InitializeSystem()
 	// Create user free list using the free block address and size given in the class
 	// This part has errors. "Next user free block pointer", "second location in free block"
 	UserFreeList = MAX_USER_MEMORY + 1;
-	NextPtr = EndOfList;
+	mem[UserFreeList] = EndOfList;
+	//NextPtr = EndOfList;
 	mem[NextPtr + 1] = MAX_HEAP_MEMORY;
 
 	// Create OS free list using the free block address and size given in the class
 	// This part has errors. "Next OS free block pointer", "second location in free block"
 	OSFreeList = MAX_HEAP_MEMORY + 1;
-	NextPtr = EndOfList;
+	mem[OSFreeList] = EndOfList;
 	mem[NextPtr + 1] = MAX_OS_MEMORY;
 
 

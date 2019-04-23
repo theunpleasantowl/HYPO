@@ -56,7 +56,7 @@ long mar, mbr, clock, ir, psr, pc, sp;
 long OSFreeList = EndOfList;
 long UserFreeList = EndOfList;
 long RQ = EndOfList;
-long WQ;
+long WQ = EndOfList;	// Printed in main and must therefore be initialized
 long SysShutdownStatus;
 
 //long EndOfList = -1; //indicates end of OSFreeList or UserFreeList
@@ -971,6 +971,10 @@ void DumpMemory(
  ******************************************************************************/
 long CreateProcess(char* filename, long priority)
 {
+	// Note to Professor: Team believed that CreateProcess was not to be implemented
+	// This section was originally written but commented out and bugs appeared.
+	// Now this section is implemented again.
+
 	// Allocate space for Process Control Block
 	long PCBptr = AllocateOSMemory(PCBsize);
 
@@ -982,7 +986,7 @@ long CreateProcess(char* filename, long priority)
 
 
 	// Initialize PCB: Set nextPCBlink to end of list, default priority, Ready state, and PID
-	InitializePCB(PCBptr); //TODO: FIX names once function implemented
+	InitializePCB(PCBptr);
 
 	// Load the program
 	if (AbsoluteLoader(filename) == OK)
@@ -991,7 +995,8 @@ long CreateProcess(char* filename, long priority)
 		return ErrorFileOpen;
 
 	// Allocate stack space from user free list
-	mem[PCBptr + PCB_StackSize] = PCBsize; 		// Set ptr = Allocate User Memory of size StackSize;
+	PCBptr = AllocateUserMemory(mem[PCBptr + PCB_StackSize]);
+	//mem[PCBptr + PCB_StackSize] = PCBsize; 		// Set ptr = Allocate User Memory of size StackSize;
 	if (PCBptr < 0)			// Check for error
 	{  				// User memory allocation failed
 		FreeOSMemory(&PCBptr, PCBsize);
@@ -1456,7 +1461,7 @@ void InitializePCB(long PCBptr)
 {
 	//Set entire PCB area to 0 using PCBptr;
 	// Array initialization
-	for (int i = 0; i < MAX_USER_MEMORY; i++)
+	for (int i = 0; i < PCBsize; i++)
 	{
 		mem[PCBptr + i] = 0;
 	}
@@ -1494,7 +1499,7 @@ void InitializePCB(long PCBptr)
 void PrintPCB(long PCBptr)
 {
 	printf("PCB address = %d\n",  PCBptr);
-	printf("Next PCB Ptr = %d\n", mem[PCBptr +NextPtr]);
+	printf("Next PCB Ptr = %d\n", mem[PCBptr + NextPtr]);
 	printf("PID = %d\n", mem[PCBptr + PCB_Pid]);
 	printf("State = %d\n", mem[PCBptr + PCB_State]);
 	printf("PC = %d\n", mem[PCBptr + PCB_PC]);
@@ -1537,7 +1542,7 @@ long PrintQueue(long Qptr)
 
 	if (currentPCBPtr == EndOfList)
 	{
-		printf("End of List reached");
+		printf("Empty List\n");
 		return(OK);
 	}
 

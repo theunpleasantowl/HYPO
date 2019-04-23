@@ -736,7 +736,7 @@ long SystemCall(long SystemCallID)
 	switch (SystemCallID) {
 		case 1:                 //process_create
 			//status = CreateProcess(filename, priority);
-			printf("System call not implemented");
+			printf("System call not implemented\n");
 			break;
 		case 2:                 //process_delete
 			// not needed

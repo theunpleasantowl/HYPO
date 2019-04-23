@@ -53,7 +53,10 @@
 /*** GLOBAL VARS ***/
 long mem[SYSTEM_MEMORY_SIZE], gpr[GPR_NUMBER];
 long mar, mbr, clock, ir, psr, pc, sp;
-long OSFreeList, UserFreeList, RQ, WQ;
+long OSFreeList = EndOfList;
+long UserFreeList = EndOfList;
+long RQ = EndOfList;
+long WQ;
 long SysShutdownStatus;
 
 //long EndOfList = -1; //indicates end of OSFreeList or UserFreeList
